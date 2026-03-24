@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskType {
+  cooking
+  packaging
+  delivery
+}
+
+enum BuddyRequestStatus {
+  open
+  matched
+  confirmed
+  completed
+}
+
+enum ApplicationStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum AssignmentStatus {
+  confirmed
+  completed
+}
+
+enum BuddyStatus {
+  pending
+  approved
+  active
+  suspended
+}
+
+model Helper {
+  id              String               @id @default(cuid())
+  name            String
+  email           String               @unique
+  phone           String               @unique
+  passwordHash    String
+  status          BuddyStatus          @default(pending)
+  rating          Float                @default(5.0)
+  isAvailable     Boolean              @default(true)
+  lat             Float
+  lng             Float
+  locationLabel   String?
+  radiusKm        Float?
+  profilePhotoUrl String?
+  idNumber        String?
+  skills          HelperSkill[]
+  availability    HelperAvailability[]
+  applications    BuddyApplication[]
+  assignments     BuddyAssignment[]
+  ratings         Rating[]
+  createdAt       DateTime             @default(now())
+}
+
+model HelperSkill {
+  id       String   @id @default(cuid())
+  helper   Helper   @relation(fields: [helperId], references: [id])
+  helperId String
+  taskType TaskType
+}
+
+model HelperAvailability {
+  id        String @id @default(cuid())
+  helper    Helper @relation(fields: [helperId], references: [id])
+  helperId  String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+}
+
+model BuddyRequest {
+  id            String             @id @default(cuid())
+  sellerId      String
+  taskType      TaskType
+  locationLabel String
+  lat           Float
+  lng           Float
+  startTime     DateTime
+  endTime       DateTime
+  durationHours Float
+  compensation  Float?
+  status        BuddyRequestStatus @default(open)
+  applications  BuddyApplication[]
+  assignments   BuddyAssignment[]
+  ratings       Rating[]
+  createdAt     DateTime           @default(now())
+}
+
+model BuddyApplication {
+  id        String            @id @default(cuid())
+  request   BuddyRequest      @relation(fields: [requestId], references: [id])
+  requestId String
+  helper    Helper            @relation(fields: [helperId], references: [id])
+  helperId  String
+  note      String?
+  status    ApplicationStatus @default(pending)
+  createdAt DateTime          @default(now())
+}
+
+model BuddyAssignment {
+  id          String           @id @default(cuid())
+  request     BuddyRequest     @relation(fields: [requestId], references: [id])
+  requestId   String
+  helper      Helper           @relation(fields: [helperId], references: [id])
+  helperId    String
+  status      AssignmentStatus @default(confirmed)
+  createdAt   DateTime         @default(now())
+  completedAt DateTime?
+}
+
+model Rating {
+  id        String       @id @default(cuid())
+  request   BuddyRequest @relation(fields: [requestId], references: [id])
+  requestId String
+  helper    Helper       @relation(fields: [helperId], references: [id])
+  helperId  String
+  rating    Float
+  comment   String?
+  createdAt DateTime     @default(now())
+}

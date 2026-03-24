@@ -1,0 +1,52 @@
+# TODO – Frontend Web (Next.js)
+
+- [ ] Define shared UI library and design tokens
+- [ ] Implement buyer portal shell and navigation
+- [ ] Implement seller portal shell and navigation
+- [ ] Implement admin portal shell and navigation
+- [x] Buyer dashboard/home: search bar with auto-suggestions
+- [x] Buyer dashboard/home: location selector and saved default address
+- [x] Buyer dashboard/home: category navigation (Meal Prep, Office Bites, Picnic Snacks, Catering)
+- [x] Buyer dashboard/home: featured/recommended sellers
+- [x] Buyer dashboard/home: available now section
+- [x] Buyer seller discovery/listing: seller cards (name, rating, price range, delivery time, availability)
+- [x] Buyer seller discovery/listing: filters and sorting (rating, distance, price, availability)
+- [x] Buyer seller discovery/listing: map view (optional)
+- [x] Buyer seller profile: overview (rating, description, service area, lead time)
+- [x] Buyer seller profile: menu display with availability
+- [x] Buyer seller profile: availability and scheduling display (next available time, blackout periods)
+- [x] Buyer seller profile: reviews section (verified)
+- [x] Buyer seller profile: message seller (pre-order)
+- [x] Buyer order creation: cart with quantity controls and price breakdown
+- [x] Buyer order creation: schedule picker (date + time window)
+- [x] Buyer order creation: order notes
+- [x] Buyer order creation: delivery address selection (saved + add new)
+- [x] Buyer order creation: payment selection (M-Pesa, pay on delivery)
+- [x] Buyer order creation: order confirmation summary
+- [x] Buyer payments: M-Pesa STK push UI (phone entry + prompt state)
+- [x] Buyer payments: payment status handling (pending, successful, failed)
+- [x] Buyer payments: receipt view (transaction details + order id)
+- [x] Buyer order tracking: order status timeline (placed, accepted, in preparation, out for delivery, delivered, completed)
+- [x] Buyer order tracking: delivery tracking (optional)
+- [x] Buyer order tracking: order chat linked to order
+- [x] Buyer order tracking: notifications for status updates and alerts
+- [x] Buyer messaging: chat per order with real-time updates + message history
+- [ ] Buyer messaging: pagination and read receipts (optional)
+- [x] Buyer reviews & ratings: submit review only after completion
+- [x] Buyer reviews & ratings: 1–5 rating system and public display
+- [x] Buyer profile & account: profile info (name, phone, email)
+- [x] Buyer profile & account: saved addresses
+- [x] Buyer profile & account: order history + reorder
+- [x] Buyer profile & account: payment history
+- [x] Buyer support & disputes: support entry (ticket/chat + WhatsApp link)
+- [x] Buyer support & disputes: evidence upload
+- [x] Buyer support & disputes: refund requests linked to orders
+- [ ] Buyer notifications: order updates, payment confirmations, promotions
+- [ ] Seller onboarding form and verification status
+- [ ] Seller menu management and availability toggles
+- [ ] Seller order management and status updates
+- [ ] Seller Buddy Pool request form
+- [ ] Admin seller approval and verification checklist
+- [ ] Admin order monitoring, dispute, refund screens
+- [ ] Admin metrics dashboard MVP
+- [ ] Shared error states and offline handling

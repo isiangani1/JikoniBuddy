@@ -1,0 +1,464 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskType {
+  cooking
+  packaging
+  delivery
+  generic
+}
+
+enum OrderStatus {
+  pending
+  accepted
+  preparing
+  ready
+  delivering
+  completed
+  cancelled
+}
+
+enum UserRole {
+  buyer
+  seller
+  buddy
+  admin
+}
+
+enum BuddyRequestStatus {
+  open
+  matched
+  confirmed
+  completed
+}
+
+enum ApplicationStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum AssignmentStatus {
+  confirmed
+  completed
+}
+
+enum BuddyStatus {
+  pending
+  approved
+  active
+  suspended
+}
+
+enum JobStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  paid
+  failed
+}
+
+enum NotificationType {
+  job_request
+  payment
+  reminder
+  system
+}
+
+enum NotificationStatus {
+  unread
+  read
+  archived
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum MetricType {
+  requests_completed
+  requests_accepted
+  on_time_rate
+  rating_quality
+  acceptance_rate
+  earnings
+}
+
+enum MetricPeriod {
+  daily
+  weekly
+  monthly
+}
+
+enum CategoryKind {
+  header
+  home
+  taxonomy
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String?
+  email       String    @unique
+  phone       String    @unique
+  passwordHash String
+  role        UserRole  @default(buyer)
+  displayName String?
+  status      BuddyStatus @default(pending)
+  rating      Float       @default(5.0)
+  isAvailable Boolean     @default(true)
+  lat         Float?
+  lng         Float?
+  locationLabel String?
+  radiusKm    Float?
+  profilePhotoUrl String?
+  idNumber    String?
+  skills      UserSkill[]
+  availability UserAvailability[]
+  applications BuddyApplication[]
+  assignments  BuddyAssignment[]
+  ratings      Rating[]
+  earnings     Earning[]
+  notifications Notification[]
+  payments     Payment[]
+  jobs         Job[]
+  metrics      MetricSnapshot[]
+  buyerProfile BuyerProfile?
+  helperProfile HelperProfile?
+  sellerProfile SellerProfile?
+  products     Product[]         @relation("SellerProducts")
+  ordersAsBuyer Order[]          @relation("BuyerOrders")
+  ordersAsSeller Order[]         @relation("SellerOrders")
+  addresses    DeliveryAddress[]
+  savedSellers SavedSeller[]
+  wishlists    WishlistItem[]
+  carts        Cart[]
+  sentMessages Message[]      @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  assignedOrders Order[]      @relation("BuddyAssignments")
+  createdAt   DateTime  @default(now())
+}
+
+model HelperProfile {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String   @unique
+  isOnline      Boolean  @default(false)
+  lat           Float?
+  lng           Float?
+  rating        Float    @default(5.0)
+  jobsCompleted Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model UserSkill {
+  id       String   @id @default(cuid())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String
+  taskType TaskType
+}
+
+model UserAvailability {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+}
+
+model BuddyRequest {
+  id            String             @id @default(cuid())
+  sellerId      String
+  taskType      TaskType
+  locationLabel String
+  lat           Float
+  lng           Float
+  startTime     DateTime
+  endTime       DateTime
+  durationHours Float
+  compensation  Float?
+  status        BuddyRequestStatus @default(open)
+  applications  BuddyApplication[]
+  assignments   BuddyAssignment[]
+  ratings       Rating[]
+  jobs          Job[]
+  createdAt     DateTime           @default(now())
+}
+
+model BuddyApplication {
+  id        String            @id @default(cuid())
+  request   BuddyRequest      @relation(fields: [requestId], references: [id])
+  requestId String
+  helper    User              @relation(fields: [helperId], references: [id])
+  helperId  String
+  note      String?
+  status    ApplicationStatus @default(pending)
+  createdAt DateTime          @default(now())
+}
+
+model BuddyAssignment {
+  id        String           @id @default(cuid())
+  request   BuddyRequest     @relation(fields: [requestId], references: [id])
+  requestId String
+  helper    User             @relation(fields: [helperId], references: [id])
+  helperId  String
+  status    AssignmentStatus @default(confirmed)
+  createdAt DateTime         @default(now())
+  completedAt DateTime?
+}
+
+model Rating {
+  id        String      @id @default(cuid())
+  request   BuddyRequest @relation(fields: [requestId], references: [id])
+  requestId String
+  helper    User        @relation(fields: [helperId], references: [id])
+  helperId  String
+  rating    Float
+  comment   String?
+  createdAt DateTime    @default(now())
+}
+
+model Earning {
+  id        String       @id @default(cuid())
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Float
+  currency  String       @default("KES")
+  source    String
+  status    PayoutStatus @default(pending)
+  createdAt DateTime     @default(now())
+  paidAt    DateTime?
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  user      User               @relation(fields: [userId], references: [id])
+  userId    String
+  title     String
+  message   String
+  type      NotificationType   @default(system)
+  status    NotificationStatus @default(unread)
+  data      Json?
+  createdAt DateTime           @default(now())
+  readAt    DateTime?
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  amount      Float
+  currency    String        @default("KES")
+  method      String        @default("M-Pesa")
+  reference   String?
+  status      PaymentStatus @default(pending)
+  createdAt   DateTime      @default(now())
+  completedAt DateTime?
+}
+
+model Job {
+  id            String    @id @default(cuid())
+  buddy         User      @relation(fields: [buddyId], references: [id])
+  buddyId       String
+  sellerId      String
+  requestId     String?
+  request       BuddyRequest? @relation(fields: [requestId], references: [id])
+  title         String
+  taskType      TaskType
+  locationLabel String
+  startTime     DateTime
+  endTime       DateTime?
+  payAmount     Float
+  currency      String    @default("KES")
+  status        JobStatus @default(scheduled)
+  createdAt     DateTime  @default(now())
+
+  @@unique([requestId, buddyId])
+}
+
+model MetricSnapshot {
+  id        String       @id @default(cuid())
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+  type      MetricType
+  period    MetricPeriod
+  value     Float
+  label     String?
+  recordedAt DateTime    @default(now())
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  kind      CategoryKind @default(taxonomy)
+  parentId  String?
+  parent    Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[]   @relation("CategoryHierarchy")
+  sortOrder Int          @default(0)
+  imageUrl  String?
+  products  Product[]
+  createdAt DateTime     @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  currency    String   @default("KES")
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  prepTime    Int      @default(15)
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  seller      User     @relation("SellerProducts", fields: [sellerId], references: [id])
+  sellerId    String
+  wishlistItems WishlistItem[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  createdAt   DateTime @default(now())
+}
+
+model BuyerProfile {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  preferences Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryAddress {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  label     String
+  line1     String
+  line2     String?
+  city      String?
+  lat       Float?
+  lng       Float?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SavedSeller {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  sellerId  String
+  sellerName String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, sellerId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+  productName String
+  price     Float
+  currency  String   @default("KES")
+  createdAt DateTime @default(now())
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  status    String   @default("active")
+  items     CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  cartId    String
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+  name      String
+  price     Float
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+}
+
+model SellerProfile {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String   @unique
+  businessName  String?
+  description   String?
+  isAcceptingOrders Boolean @default(true)
+  maxOrdersPerHour Int    @default(20)
+  operatingHoursOpen  String?  @default("08:00")
+  operatingHoursClose String?  @default("22:00")
+  autoBuddyScaling    Boolean  @default(false)
+  prepBufferMinutes   Int      @default(15)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  buyer         User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  buyerId       String
+  seller        User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  sellerId      String
+  status        OrderStatus @default(pending)
+  totalAmount   Float
+  currency      String      @default("KES")
+  scheduledFor  DateTime?
+  items         OrderItem[]
+  messages      Message[]
+  assignedBuddy User?       @relation("BuddyAssignments", fields: [assignedBuddyId], references: [id])
+  assignedBuddyId String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  text      String
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+  quantity  Int      @default(1)
+  price     Float
+  createdAt DateTime @default(now())
+}
