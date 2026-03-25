@@ -26,13 +26,13 @@ export default function DemandMapModal({ onClose }: DemandMapModalProps) {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 10000 }}>
-      <div className="modal-card demand-map-modal" style={{ maxWidth: "900px", width: "95%" }}>
+      <div className="bg-[#160b24] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md rounded-2xl border border-white/10 p-6 shadow-2xl z-50 demand-map-modal" style={{ maxWidth: "900px", width: "95%" }}>
         <div className="modal-header" style={{ marginBottom: "1rem" }}>
           <div>
             <h2 style={{ margin: 0, color: "#2dd4bf" }}>🔥 Real-Time Demand Map</h2>
             <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.6)" }}>Showing high-order zones near you</p>
           </div>
-          <button className="ghost" onClick={onClose} style={{ fontSize: "1.5rem" }}>×</button>
+          <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={onClose} style={{ fontSize: "1.5rem" }}>×</button>
         </div>
 
         <div className="map-frame" style={{ height: "450px", borderRadius: "16px", overflow: "hidden", border: "1px solid #7C5CFF" }}>
@@ -74,7 +74,7 @@ export default function DemandMapModal({ onClose }: DemandMapModalProps) {
               <span className="dot" style={{ background: "#7C5CFF" }}></span> High
             </div>
           </div>
-          <button className="primary" onClick={onClose}>ACKNOWLEDGE & START WORKING</button>
+          <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" onClick={onClose}>ACKNOWLEDGE & START WORKING</button>
         </div>
       </div>
     </div>

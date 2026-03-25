@@ -36,12 +36,12 @@ const openTickets = [
 export default function BuddyPortalSupportPage() {
   return (
     <>
-      <main className="category-page">
+      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
       
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Support channels</h2>
-          <div className="table-card">
-            <table className="data-table">
+          <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden">
+            <table className="w-full text-left text-sm text-white">
               <thead>
                 <tr>
                   <th>Channel</th>
@@ -62,10 +62,10 @@ export default function BuddyPortalSupportPage() {
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Open tickets</h2>
-          <div className="table-card">
-            <table className="data-table">
+          <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden">
+            <table className="w-full text-left text-sm text-white">
               <thead>
                 <tr>
                   <th>Ticket</th>

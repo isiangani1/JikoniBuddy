@@ -7,6 +7,7 @@ import {
   CompleteAssignmentDto,
   ConfirmBuddyRequestDto,
   CreateBuddyRequestDto,
+  CreatePayoutRequestDto,
   CreateRatingDto
 } from "./dto";
 import { BuddyPoolGateway } from "./buddy-pool.gateway";
@@ -205,7 +206,7 @@ export class BuddyPoolService {
       }
     });
 
-    await this.prisma.buddyRequest.update({
+    const request = await this.prisma.buddyRequest.update({
       where: { id: requestId },
       data: { status: "confirmed" }
     });
@@ -219,17 +220,27 @@ export class BuddyPoolService {
     // Broadcast the successful match to the distributed microservice layer
     this.broker.emit('buddy.assigned', {
       requestId,
-      helperId: dto.helperId
+      helperId: dto.helperId,
+      sellerId: request.sellerId
     });
 
     return assignment;
   }
 
   async completeAssignment(assignmentId: string, _dto: CompleteAssignmentDto) {
-    return this.prisma.buddyAssignment.update({
+    const assignment = await this.prisma.buddyAssignment.update({
       where: { id: assignmentId },
       data: { status: "completed", completedAt: new Date() }
     });
+    const request = await this.prisma.buddyRequest.findUnique({
+      where: { id: assignment.requestId }
+    });
+    this.broker.emit('buddy.completed', {
+      requestId: assignment.requestId,
+      helperId: assignment.helperId,
+      sellerId: request?.sellerId
+    });
+    return assignment;
   }
 
   async createRating(dto: CreateRatingDto) {
@@ -333,6 +344,31 @@ export class BuddyPoolService {
       where: { userId },
       orderBy: { createdAt: "desc" }
     });
+  }
+
+  async createPayoutRequest(userId: string, dto: CreatePayoutRequestDto) {
+    const payment = await this.prisma.payment.create({
+      data: {
+        userId,
+        amount: dto.amount,
+        currency: "KES",
+        method: "M-Pesa",
+        reference: dto.mpesaNumber,
+        status: "pending"
+      }
+    });
+
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        title: "Payout requested",
+        message: `Your payout request for KES ${dto.amount} is being processed.`,
+        type: "payment",
+        status: "unread"
+      }
+    });
+
+    return payment;
   }
 
   async getUserJobs(userId: string, status?: string) {

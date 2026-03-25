@@ -26,12 +26,74 @@ export class MetricsService {
     const revenue = todaysOrders.reduce((sum, order) => sum + order.totalAmount, 0);
     const completedOrders = todaysOrders.filter(o => o.status === "completed").length;
 
+    const recentCompleted = await prisma.order.findMany({
+      where: { sellerId, status: "completed" },
+      orderBy: { updatedAt: "desc" },
+      take: 30
+    });
+
+    const avgOrderCycleMins =
+      recentCompleted.length === 0
+        ? 0
+        : Math.round(
+            recentCompleted.reduce((sum, order) => {
+              const diff = order.updatedAt.getTime() - order.createdAt.getTime();
+              return sum + diff / 60000;
+            }, 0) / recentCompleted.length
+          );
+
+    const buddyAssignments = await prisma.buddyAssignment.findMany({
+      where: { request: { sellerId } },
+      include: { request: true },
+      orderBy: { createdAt: "desc" },
+      take: 30
+    });
+
+    const avgBuddyMatchMins =
+      buddyAssignments.length === 0
+        ? 0
+        : Math.round(
+            buddyAssignments.reduce((sum, assignment) => {
+              const diff =
+                assignment.createdAt.getTime() -
+                assignment.request.createdAt.getTime();
+              return sum + diff / 60000;
+            }, 0) / buddyAssignments.length
+          );
+
+    const processingHistory = recentCompleted
+      .slice(0, 10)
+      .map((order) => ({
+        orderId: order.id,
+        minutes: Math.round(
+          (order.updatedAt.getTime() - order.createdAt.getTime()) / 60000
+        ),
+        completedAt: order.updatedAt
+      }));
+
+    const buddyLatencyHistory = buddyAssignments
+      .slice(0, 10)
+      .map((assignment) => ({
+        requestId: assignment.requestId,
+        minutes: Math.round(
+          (assignment.createdAt.getTime() -
+            assignment.request.createdAt.getTime()) /
+            60000
+        ),
+        matchedAt: assignment.createdAt
+      }));
+
     return {
       activeOrders,
       todaysOrders: todaysOrders.length,
       revenue,
       completedOrders,
-      capacityUtilization: Math.min(100, (activeOrders / 20) * 100) // Mock logic: assume max 20 capacity
+      capacityUtilization: Math.min(100, (activeOrders / 20) * 100),
+      avgOrderCycleMins,
+      avgBuddyMatchMins,
+      recentCompletedOrders: recentCompleted.length,
+      processingHistory,
+      buddyLatencyHistory
     };
   }
 }

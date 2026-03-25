@@ -5,6 +5,7 @@ import {
   CompleteAssignmentDto,
   ConfirmBuddyRequestDto,
   CreateBuddyRequestDto,
+  CreatePayoutRequestDto,
   CreateRatingDto
 } from "./dto";
 
@@ -106,5 +107,13 @@ export class BuddyPoolController {
   @Get("users/:id/requests")
   getUserRequests(@Param("id") id: string) {
     return this.buddyService.getUserApplications(id);
+  }
+
+  @Post("users/:id/payouts")
+  createPayoutRequest(
+    @Param("id") id: string,
+    @Body() dto: CreatePayoutRequestDto
+  ) {
+    return this.buddyService.createPayoutRequest(id, dto);
   }
 }

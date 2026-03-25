@@ -18,21 +18,19 @@ export async function POST(request: Request) {
   };
 
   const role = payload.role ?? "buyer";
-  const buddyServiceUrl =
-    process.env.BUDDY_SERVICE_URL ?? process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL;
+  const gatewayUrl =
+    process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
   if (role === "buddy") {
-    if (!buddyServiceUrl) {
+    if (!gatewayUrl) {
       return NextResponse.json(
-        { error: "Buddy service URL not configured." },
+        { error: "API Gateway URL not configured." },
         { status: 500 }
       );
     }
 
     try {
-      // Use 127.0.0.1 instead of localhost for better stability in Node 18+ environments
-      const targetUrl = buddyServiceUrl.replace("localhost", "127.0.0.1");
-      const response = await fetch(`${targetUrl}/buddy/auth/register`, {
+      const response = await fetch(`${gatewayUrl}/api/buddy/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -51,7 +49,7 @@ export async function POST(request: Request) {
     } catch (err: any) {
       console.error("Buddy Service Connectivity Error:", err);
       return NextResponse.json(
-        { error: `Buddy Service is unreachable at ${buddyServiceUrl}. Ensure it is running on port 4005.` },
+        { error: `Buddy Service is unreachable via gateway at ${gatewayUrl}.` },
         { status: 503 }
       );
     }
@@ -86,4 +84,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -22,9 +22,11 @@ export default function ApplicantRadar({
   const [applicants, setApplicants] = useState<Applicant[]>([]);
 
   useEffect(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-    const socket: Socket = io(`${baseUrl}/buddy`, {
-      query: { userId: sellerId }
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket: Socket = io(`${baseUrl}/ws/buddy`, {
+      query: { userId: sellerId },
+      transports: ["websocket"]
     });
 
     socket.on("seller.applicant_found", (helperId: string) => {
@@ -66,14 +68,14 @@ export default function ApplicantRadar({
         }}>
           <span style={{ fontSize: "1.5rem" }}>📡</span>
         </div>
-        <p className="muted" style={{ margin: 0 }}>Broadcasting SOS to nearby buddies...</p>
+        <p className="text-white/50 text-sm" style={{ margin: 0 }}>Broadcasting SOS to nearby buddies...</p>
       </div>
 
       <div className="radar-results" style={{ display: "grid", gap: "1rem" }}>
         {applicants.map((app) => (
           <div
             key={app.id}
-            className="applicant-card"
+            className="applicant- bg-white/5 border border-white/10 rounded-[24px] p-6 flex flex-col gap-4 hover:border-white/20 transition-colors"
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -86,12 +88,12 @@ export default function ApplicantRadar({
           >
             <div>
               <strong style={{ display: "block", fontSize: "1.1rem" }}>{app.name}</strong>
-              <span className="muted" style={{ fontSize: "0.9rem" }}>
+              <span className="text-white/50 text-sm" style={{ fontSize: "0.9rem" }}>
                 ⭐ {app.rating.toFixed(1)} · {app.distance}
               </span>
             </div>
             <button
-              className="primary"
+              className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
               style={{ background: "#2dd4bf", color: "#12021f" }}
               onClick={() => onConfirm(app.id)}
             >
@@ -100,7 +102,7 @@ export default function ApplicantRadar({
           </div>
         ))}
         {applicants.length === 0 && (
-          <div style={{ textAlign: "center", padding: "2rem" }} className="muted">
+          <div style={{ textAlign: "center", padding: "2rem" }} className="text-white/50 text-sm">
             Waiting for helpers to accept your request.
           </div>
         )}

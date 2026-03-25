@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { BuddyPoolController } from "./buddy-pool.controller";
+import { BuddyEventsController } from "./buddy-events.controller";
 import { BuddyAuthController } from "./buddy-auth.controller";
 import { BuddyPoolService } from "./buddy-pool.service";
 import { PrismaService } from "../prisma.service";
@@ -19,7 +20,7 @@ import { ClientsModule, Transport } from "@nestjs/microservices";
       }
     ])
   ],
-  controllers: [BuddyPoolController, BuddyAuthController],
+  controllers: [BuddyPoolController, BuddyAuthController, BuddyEventsController],
   providers: [
     BuddyPoolService,
     BuddyAuthService,

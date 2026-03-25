@@ -51,6 +51,15 @@ export class OrderService {
       status: order.status
     });
 
+    if (order.status === 'completed') {
+      this.brokerClient.emit('payment.completed', {
+        orderId: order.id,
+        sellerId: order.sellerId,
+        totalAmount: order.totalAmount,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     return order;
   }
 }

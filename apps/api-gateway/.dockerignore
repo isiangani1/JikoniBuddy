@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+prisma/generated
+apps/**/dist
+apps/**/.next
+apps/**/node_modules
+.git
+.env

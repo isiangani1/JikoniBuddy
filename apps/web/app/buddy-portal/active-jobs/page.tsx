@@ -52,7 +52,7 @@ export default function BuddyPortalActiveJobsPage() {
     const buddyId = getBuddyId();
     if (!buddyId) return;
     fetchBuddyJson<JobRow[]>(
-      `/buddy/users/${buddyId}/jobs?status=scheduled,in_progress`
+      `/users/${buddyId}/jobs?status=scheduled,in_progress`
     )
       .then((data) => {
         if (data?.length) setJobs(data);
@@ -63,8 +63,9 @@ export default function BuddyPortalActiveJobsPage() {
   useEffect(() => {
     if (!selectedJob) return;
     if (!navigator.geolocation) return;
-    const socketUrl = process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-    const socket = io(socketUrl);
+    const socketUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketUrl}/ws/buddy`, { transports: ["websocket"] });
     socket.emit("tracking:join", { orderId: selectedJob.id });
 
     const watchId = navigator.geolocation.watchPosition(
@@ -100,8 +101,9 @@ export default function BuddyPortalActiveJobsPage() {
 
   const completeJob = () => {
     if (!selectedJob) return;
-    const socketUrl = process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-    const socket = io(socketUrl);
+    const socketUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketUrl}/ws/buddy`, { transports: ["websocket"] });
     
     socket.emit("buddy.job_completed", {
       requestId: selectedJob.id,
@@ -120,26 +122,26 @@ export default function BuddyPortalActiveJobsPage() {
 
   return (
     <div style={{ display: "flex", width: "100%", position: "relative" }}>
-      <main className="category-page" style={{ flex: 1, paddingRight: selectedJob ? "400px" : "0", transition: "padding 0.3s" }}>
-        <section className="category-hero">
-          <div className="category-hero-content">
-            <p className="eyebrow"></p>
+      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0" style={{ flex: 1, paddingRight: selectedJob ? "400px" : "0", transition: "padding 0.3s" }}>
+        <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
+          <div className="flex-1 flex flex-col gap-2 justify-center">
+            <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0"></p>
             <h1>Active Jobs</h1>
-            <div className="hero-actions">
-              <Link className="primary" href="/buddy-portal/my-requests">
+            <div className="flex flex-wrap gap-3 mt-4">
+              <Link className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" href="/buddy-portal/my-requests">
                 View requests
               </Link>
-              <Link className="ghost" href="/buddy-portal/history">
+              <Link className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" href="/buddy-portal/history">
                 Job history
               </Link>
             </div>
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Active job list</h2>
-          <div className="table-card">
-            <table className="data-table" style={{ width: "100%" }}>
+          <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden">
+            <table className="w-full text-left text-sm text-white" style={{ width: "100%" }}>
               <thead>
                 <tr>
                   <th>Job</th>

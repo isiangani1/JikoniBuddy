@@ -16,7 +16,7 @@ export default function SellerSupportDesk() {
   return (
     <main style={{ padding: "1rem", maxWidth: "800px", margin: "0 auto" }}>
       <header style={{ marginBottom: "2rem" }}>
-        <p className="eyebrow">Help & Assistance</p>
+        <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Help & Assistance</p>
         <h1>Seller Support Desk</h1>
         <p style={{ color: "rgba(255,255,255,0.6)", marginTop: "0.5rem" }}>Connected directly to platform administration. Typical response time is 15 minutes.</p>
       </header>
@@ -68,7 +68,7 @@ export default function SellerSupportDesk() {
               />
             </div>
 
-            <button type="submit" className="primary" style={{ padding: "1.2rem", borderRadius: "12px", fontSize: "1rem" }}>
+            <button type="submit" className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ padding: "1.2rem", borderRadius: "12px", fontSize: "1rem" }}>
               Open Ticket
             </button>
           </div>

@@ -14,8 +14,8 @@ export default function PortalGuard({
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("jb_auth") === "true";
-    const storedRole = localStorage.getItem("jb_role");
+    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
+    const storedRole = sessionStorage.getItem("jb_role");
     if (!isLoggedIn || storedRole !== role) {
       router.replace("/");
       return;

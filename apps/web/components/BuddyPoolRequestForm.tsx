@@ -45,8 +45,8 @@ export default function BuddyPoolRequestForm({ onSuccess, sellerId: defaultSelle
 
     try {
       const baseUrl =
-        process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-      const response = await fetch(`${baseUrl}/buddy/requests`, {
+        process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+      const response = await fetch(`${baseUrl}/api/buddy/requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -103,7 +103,7 @@ export default function BuddyPoolRequestForm({ onSuccess, sellerId: defaultSelle
         <span>Seller ID</span>
         <input name="sellerId" defaultValue={defaultSellerId} placeholder="seller-1" />
       </label>
-      <p className="muted">
+      <p className="text-white/50 text-sm">
         Don’t have a seller profile?{" "}
         <Link href="/seller" className="link">
           Create one
@@ -125,10 +125,10 @@ export default function BuddyPoolRequestForm({ onSuccess, sellerId: defaultSelle
         <input name="location" placeholder="Westlands, Nairobi" required />
       </label>
       <div className="location-actions">
-        <button type="button" className="ghost" onClick={handleUseCurrent}>
+        <button type="button" className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={handleUseCurrent}>
           Use my location
         </button>
-        <button type="button" className="ghost" onClick={() => setIsMapOpen(true)}>
+        <button type="button" className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={() => setIsMapOpen(true)}>
           Pick on map
         </button>
       </div>
@@ -166,8 +166,8 @@ export default function BuddyPoolRequestForm({ onSuccess, sellerId: defaultSelle
           <input name="compensation" type="number" min="0" />
         </label>
       </div>
-      {status ? <p className="muted">{status}</p> : null}
-      <button type="submit" className="primary full">
+      {status ? <p className="text-white/50 text-sm">{status}</p> : null}
+      <button type="submit" className="w-full px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity">
         Submit Buddy Request
       </button>
 
@@ -177,10 +177,10 @@ export default function BuddyPoolRequestForm({ onSuccess, sellerId: defaultSelle
             <div className="map-header">
               <div>
                 <h3>Select delivery location</h3>
-                <p className="muted">Pin the exact spot for the helper.</p>
+                <p className="text-white/50 text-sm">Pin the exact spot for the helper.</p>
                 {mapError ? <p className="error">{mapError}</p> : null}
               </div>
-              <button className="ghost" onClick={() => setIsMapOpen(false)}>
+              <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={() => setIsMapOpen(false)}>
                 Close
               </button>
             </div>
@@ -195,10 +195,10 @@ export default function BuddyPoolRequestForm({ onSuccess, sellerId: defaultSelle
               )}
             </div>
             <div className="map-actions">
-              <button className="ghost" onClick={() => setIsMapOpen(false)}>
+              <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={() => setIsMapOpen(false)}>
                 Cancel
               </button>
-              <button className="primary" onClick={() => setIsMapOpen(false)}>
+              <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" onClick={() => setIsMapOpen(false)}>
                 Use this location
               </button>
             </div>

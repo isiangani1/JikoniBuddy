@@ -37,7 +37,7 @@ export default function BuddyRequestDetailPage() {
 
   useEffect(() => {
     if (!requestId) return;
-    fetchBuddyJson<RequestDetail>(`/buddy/requests/${requestId}`)
+    fetchBuddyJson<RequestDetail>(`/requests/${requestId}`)
       .then((data: RequestDetail) => {
         if (data?.id) setRequest(data);
       })
@@ -52,8 +52,8 @@ export default function BuddyRequestDetailPage() {
     }
     try {
       const baseUrl =
-        process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-      const response = await fetch(`${baseUrl}/buddy/requests/${requestId}/apply`, {
+        process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+      const response = await fetch(`${baseUrl}/api/buddy/requests/${requestId}/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ helperId, note: "Buddy accepted via request detail." })
@@ -77,8 +77,8 @@ export default function BuddyRequestDetailPage() {
       return;
     }
     const baseUrl =
-      process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-    fetch(`${baseUrl}/buddy/requests/${requestId}/reject`, {
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    fetch(`${baseUrl}/api/buddy/requests/${requestId}/reject`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ helperId })
@@ -91,32 +91,32 @@ export default function BuddyRequestDetailPage() {
   };
 
   return (
-    <main className="category-page">
-      <section className="category-hero">
-        <div className="category-hero-content">
-          <p className="eyebrow">Request details</p>
+    <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+      <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
+        <div className="flex-1 flex flex-col gap-2 justify-center">
+          <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Request details</p>
           <h1>
             {request.taskType} request · {request.locationLabel}
           </h1>
-          <p className="subhead">
+          <p className="text-white/70 m-0 text-lg">
             Review the task scope, time window, and compensation before you
             accept.
           </p>
-          <div className="hero-actions">
-            <Link className="primary" href="/buddy-portal/my-requests">
+          <div className="flex flex-wrap gap-3 mt-4">
+            <Link className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" href="/buddy-portal/my-requests">
               Back to requests
             </Link>
-            <Link className="ghost" href="/buddy-portal/active-jobs">
+            <Link className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" href="/buddy-portal/active-jobs">
               View active jobs
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="section fade-in">
-        {actionStatus ? <p className="muted">{actionStatus}</p> : null}
-        <div className="table-card">
-          <table className="data-table">
+      <section className="flex flex-col gap-6 animate-in fade-in duration-500">
+        {actionStatus ? <p className="text-white/50 text-sm">{actionStatus}</p> : null}
+        <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden">
+          <table className="w-full text-left text-sm text-white">
             <thead>
               <tr>
                 <th>Detail</th>
@@ -171,11 +171,11 @@ export default function BuddyRequestDetailPage() {
             </tbody>
           </table>
         </div>
-        <div className="hero-actions" style={{ marginTop: "1.2rem" }}>
-          <button className="primary" type="button" onClick={handleAccept}>
+        <div className="flex flex-wrap gap-3 mt-4" style={{ marginTop: "1.2rem" }}>
+          <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" type="button" onClick={handleAccept}>
             Accept request
           </button>
-          <button className="ghost" type="button" onClick={handleReject}>
+          <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" type="button" onClick={handleReject}>
             Reject request
           </button>
         </div>

@@ -9,6 +9,7 @@ export class FailureHandlingService {
 
   // Simulated Dead-Letter Queue (DLQ) for the Message Broker
   private deadLetterQueue: Array<{ event: string; payload: any; errors: string[]; retryCount: number }> = [];
+  private capacityFallbackTimers = new Map<string, NodeJS.Timeout>();
 
   async queueRetry(event: string, payload: any, error: string) {
     this.logger.warn(`[DLQ] Queuing failed event '${event}' for retry. Reason: ${error}`);
@@ -44,5 +45,23 @@ export class FailureHandlingService {
     });
 
     this.logger.log(`[FALLBACK] Store ${sellerId} is now OFFLINE.`);
+  }
+
+  scheduleCapacityFallback(sellerId: string, delayMs = 2 * 60 * 1000) {
+    if (this.capacityFallbackTimers.has(sellerId)) return;
+    this.logger.warn(`[FALLBACK] Scheduling capacity fallback in ${delayMs / 1000}s for ${sellerId}.`);
+    const timer = setTimeout(() => {
+      this.capacityFallbackTimers.delete(sellerId);
+      this.triggerAutoPauseFallback(sellerId);
+    }, delayMs);
+    this.capacityFallbackTimers.set(sellerId, timer);
+  }
+
+  clearCapacityFallback(sellerId: string) {
+    const timer = this.capacityFallbackTimers.get(sellerId);
+    if (!timer) return;
+    clearTimeout(timer);
+    this.capacityFallbackTimers.delete(sellerId);
+    this.logger.log(`[FALLBACK] Cleared pending capacity fallback for ${sellerId}.`);
   }
 }

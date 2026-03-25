@@ -9,12 +9,12 @@ export async function POST(request: Request) {
   const email = body.email?.toLowerCase() ?? "";
   const password = body.password ?? "";
 
-  const buddyServiceUrl =
-    process.env.BUDDY_SERVICE_URL ?? process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL;
+  const gatewayUrl =
+    process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
-  if (buddyServiceUrl && email && password) {
+  if (gatewayUrl && email && password) {
     try {
-      const response = await fetch(`${buddyServiceUrl}/buddy/auth/login`, {
+      const response = await fetch(`${gatewayUrl}/api/buddy/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

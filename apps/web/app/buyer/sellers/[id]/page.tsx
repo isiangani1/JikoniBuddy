@@ -52,7 +52,7 @@ export default function BuyerSellerDetailPage({
   );
 
   const handleCheckout = () => {
-    const isLoggedIn = localStorage.getItem("jb_auth") === "true";
+    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     if (!isLoggedIn) {
       alert("Please log in to continue to checkout.");
       router.push("/login");
@@ -62,7 +62,7 @@ export default function BuyerSellerDetailPage({
   };
 
   const handlePreOrderMessage = () => {
-    const isLoggedIn = localStorage.getItem("jb_auth") === "true";
+    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     if (!isLoggedIn) {
       alert("Please log in to message this seller.");
       router.push("/login");
@@ -76,10 +76,10 @@ export default function BuyerSellerDetailPage({
   if (!seller) {
     return (
       <>
-        <main className="category-page">
-          <section className="section fade-in">
+        <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+          <section className="flex flex-col gap-6 animate-in fade-in duration-500">
             <h2>Seller not found</h2>
-            <p className="muted">Please return to available sellers.</p>
+            <p className="text-white/50 text-sm">Please return to available sellers.</p>
           </section>
         </main>
       </>
@@ -88,29 +88,29 @@ export default function BuyerSellerDetailPage({
 
   return (
     <>
-      <main className="category-page">
-        <section className="category-hero">
-          <div className="category-hero-content">
-            <p className="eyebrow">{seller.availability}</p>
+      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+        <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
+          <div className="flex-1 flex flex-col gap-2 justify-center">
+            <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">{seller.availability}</p>
             <h1>{seller.name}</h1>
-            <p className="subhead">
+            <p className="text-white/70 m-0 text-lg">
               Rating {(averageRating ?? seller.rating).toFixed(1)} ★ · {seller.eta} · {seller.priceRange}
             </p>
-            <div className="hero-actions">
+            <div className="flex flex-wrap gap-3 mt-4">
               {seller.services.map((service) => (
-                <span key={service} className="badge">
+                <span key={service} className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30">
                   {service}
                 </span>
               ))}
-              <Link className="badge" href="/buyer/sellers">
+              <Link className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30" href="/buyer/sellers">
                 Back to sellers
               </Link>
             </div>
           </div>
-          <div className="category-hero-card">
+          <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
             <h3>Order Summary</h3>
             {cart.length === 0 ? (
-              <p className="muted">Your cart is empty.</p>
+              <p className="text-white/50 text-sm">Your cart is empty.</p>
             ) : (
               <ul>
                 {cart.map((item) => (
@@ -121,7 +121,7 @@ export default function BuyerSellerDetailPage({
                       </span>
                       <div className="cart-actions">
                         <button
-                          className="ghost"
+                          className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur"
                           type="button"
                           onClick={() => {
                             updateCartQty(item.id, item.qty - 1);
@@ -131,7 +131,7 @@ export default function BuyerSellerDetailPage({
                           -
                         </button>
                         <button
-                          className="ghost"
+                          className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur"
                           type="button"
                           onClick={() => {
                             updateCartQty(item.id, item.qty + 1);
@@ -146,45 +146,45 @@ export default function BuyerSellerDetailPage({
                 ))}
               </ul>
             )}
-            <p className="muted">Total: KES {total.toFixed(0)}</p>
-            <button className="primary full" onClick={handleCheckout}>
+            <p className="text-white/50 text-sm">Total: KES {total.toFixed(0)}</p>
+            <button className="w-full px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity" onClick={handleCheckout}>
               Proceed to Checkout
             </button>
-            <button className="ghost full" type="button" onClick={handlePreOrderMessage}>
+            <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur full" type="button" onClick={handlePreOrderMessage}>
               Message seller
             </button>
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Availability & scheduling</h2>
-          <div className="category-grid">
-            <div className="category-card">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Next available</h3>
-              <p className="muted">Today · 12:00 - 14:00</p>
-              <p className="muted">Lead time: 60-90 minutes (stub)</p>
+              <p className="text-white/50 text-sm">Today · 12:00 - 14:00</p>
+              <p className="text-white/50 text-sm">Lead time: 60-90 minutes (stub)</p>
             </div>
-            <div className="category-card">
+            <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Blackout periods</h3>
-              <p className="muted">None configured (stub)</p>
+              <p className="text-white/50 text-sm">None configured (stub)</p>
             </div>
-            <div className="category-card">
+            <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Service area</h3>
-              <p className="muted">Nairobi (stub)</p>
+              <p className="text-white/50 text-sm">Nairobi (stub)</p>
             </div>
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Menu</h2>
-          <div className="category-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {seller.products.map((product) => (
-              <div key={product.id} className="category-card">
+              <div key={product.id} className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
-                <p className="muted">KES {product.price}</p>
+                <p className="text-white/50 text-sm">KES {product.price}</p>
                 <button
-                  className="primary"
+                  className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap"
                   onClick={() => {
                     addCartItem(seller.id, product);
                     setCartVersion((v) => v + 1);
@@ -197,32 +197,32 @@ export default function BuyerSellerDetailPage({
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Reviews</h2>
-          <div className="category-grid">
-            <div className="category-card">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Verified buyer reviews</h3>
               {reviews.length ? (
                 <div>
-                  <p className="muted">Average: {(averageRating ?? 0).toFixed(1)} ★</p>
+                  <p className="text-white/50 text-sm">Average: {(averageRating ?? 0).toFixed(1)} ★</p>
                   <ul>
                     {reviews.slice(0, 3).map((review) => (
                       <li key={review.id}>
                         <p>
                           {review.rating} ★ — {review.comment || "(no comment)"}
                         </p>
-                        <p className="muted">Order #{review.orderId}</p>
+                        <p className="text-white/50 text-sm">Order #{review.orderId}</p>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : (
-                <p className="muted">No reviews yet.</p>
+                <p className="text-white/50 text-sm">No reviews yet.</p>
               )}
             </div>
-            <div className="category-card">
+            <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Leave a review</h3>
-              <p className="muted">Only available after order completion.</p>
+              <p className="text-white/50 text-sm">Only available after order completion.</p>
             </div>
           </div>
         </section>

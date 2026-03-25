@@ -19,8 +19,8 @@ export default function ManageRequestsPage() {
   useEffect(() => {
     const fetchRequests = async () => {
       const baseUrl =
-        process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-      const response = await fetch(`${baseUrl}/buddy/requests`);
+        process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+      const response = await fetch(`${baseUrl}/api/buddy/requests`);
       if (response.ok) {
         setRequests(await response.json());
       }
@@ -30,8 +30,8 @@ export default function ManageRequestsPage() {
 
   const confirmHelper = async (requestId: string) => {
     const baseUrl =
-      process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-    const response = await fetch(`${baseUrl}/buddy/requests/${requestId}/confirm`, {
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const response = await fetch(`${baseUrl}/api/buddy/requests/${requestId}/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ helperId })
@@ -42,34 +42,34 @@ export default function ManageRequestsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="category-page">
-        <section className="category-hero">
-          <div className="category-hero-content">
-            <p className="eyebrow">Buddy Pool</p>
+      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+        <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
+          <div className="flex-1 flex flex-col gap-2 justify-center">
+            <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Buddy Pool</p>
             <h1>Manage Requests</h1>
-            <p className="subhead">Confirm helpers and track request status.</p>
+            <p className="text-white/70 m-0 text-lg">Confirm helpers and track request status.</p>
           </div>
-          <div className="category-hero-card">
+          <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
             <h3>Helper ID</h3>
             <input value={helperId} onChange={(e) => setHelperId(e.target.value)} />
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>All requests</h2>
-          <div className="category-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {requests.map((request) => (
-              <div key={request.id} className="category-card">
+              <div key={request.id} className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
                 <h3>{request.taskType}</h3>
                 <p>{request.locationLabel}</p>
-                <p className="muted">Status: {request.status}</p>
-                <button className="primary" onClick={() => confirmHelper(request.id)}>
+                <p className="text-white/50 text-sm">Status: {request.status}</p>
+                <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" onClick={() => confirmHelper(request.id)}>
                   Confirm Helper
                 </button>
               </div>
             ))}
           </div>
-          {status ? <p className="muted">{status}</p> : null}
+          {status ? <p className="text-white/50 text-sm">{status}</p> : null}
         </section>
       </main>
       <SiteFooter />

@@ -12,8 +12,13 @@ export class RequestIdMiddleware implements NestMiddleware {
 
     req.headers["x-request-id"] = requestId;
     req.headers["x-correlation-id"] = correlationId;
+    if (!req.headers["traceparent"]) {
+      req.headers["traceparent"] = requestId;
+    }
+    req.headers["x-trace-id"] = requestId;
     res.setHeader("x-request-id", requestId);
     res.setHeader("x-correlation-id", correlationId);
+    res.setHeader("x-trace-id", requestId);
 
     next();
   }

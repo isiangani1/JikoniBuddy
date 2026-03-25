@@ -45,14 +45,14 @@ export default function NotificationBanner() {
           <span style={{ marginLeft: 8 }}>{latest.message}</span>
           {latest.orderId ? (
             <span style={{ marginLeft: 10 }}>
-              <Link className="badge" href={`/buyer/orders/${latest.orderId}`}>
+              <Link className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30" href={`/buyer/orders/${latest.orderId}`}>
                 View
               </Link>
             </span>
           ) : null}
         </div>
         <button
-          className="ghost"
+          className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur"
           type="button"
           onClick={() => {
             markNotificationRead(latest.id);

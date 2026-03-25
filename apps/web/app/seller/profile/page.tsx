@@ -58,7 +58,7 @@ export default function SellerProfileEditor() {
   return (
     <main style={{ padding: "1rem", maxWidth: "800px", margin: "0 auto" }}>
       <header style={{ marginBottom: "2rem" }}>
-        <p className="eyebrow">Identity & Visibility</p>
+        <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Identity & Visibility</p>
         <h1>Business Profile Editor</h1>
         <p style={{ color: "rgba(255,255,255,0.6)", marginTop: "0.5rem" }}>Update how you appear to buyers and buddies across the platform.</p>
       </header>
@@ -112,7 +112,7 @@ export default function SellerProfileEditor() {
       </section>
 
       <button 
-        className="primary" 
+        className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" 
         style={{ width: "100%", padding: "1.2rem", fontSize: "1rem", fontWeight: "bold" }}
         onClick={() => saveProfileMutation.mutate(profile)}
         disabled={saveProfileMutation.isPending}

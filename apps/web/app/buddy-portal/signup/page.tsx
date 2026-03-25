@@ -54,21 +54,21 @@ export default function BuddyPortalSignupPage() {
 
   return (
     <>
-      <main className="category-page">
-        <section className="category-hero">
-          <div className="category-hero-content">
-            <p className="eyebrow">Buddy Onboarding</p>
+      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+        <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
+          <div className="flex-1 flex flex-col gap-2 justify-center">
+            <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Buddy Onboarding</p>
             <h1>Apply to join the Buddy Pool.</h1>
-            <p className="subhead">
+            <p className="text-white/70 m-0 text-lg">
               Share your skills, location, and verification documents. Our team
               reviews every application to keep sellers and buyers safe.
             </p>
-            <div className="hero-actions">
-              <button className="primary">Submit application</button>
-              <button className="ghost">Save for later</button>
+            <div className="flex flex-wrap gap-3 mt-4">
+              <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap">Submit application</button>
+              <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur">Save for later</button>
             </div>
           </div>
-          <div className="category-hero-card">
+          <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
             <h3>What we need</h3>
             <ul>
               <li>Personal details and contact</li>
@@ -76,13 +76,13 @@ export default function BuddyPortalSignupPage() {
               <li>Preferred service area</li>
               <li>Verification uploads</li>
             </ul>
-            <p className="subhead">
+            <p className="text-white/70 m-0 text-lg">
               Status starts as Pending and moves to Approved after review.
             </p>
           </div>
         </section>
 
-        <section className="section fade-in">
+        <section className="flex flex-col gap-6 animate-in fade-in duration-500">
           <h2>Buddy application form</h2>
           <form className="support-form" onSubmit={handleSubmit}>
             <div className="form-row">
@@ -117,7 +117,7 @@ export default function BuddyPortalSignupPage() {
               </label>
             </div>
 
-            <div className="category-hero-card">
+            <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
               <h3>Choose your skill type</h3>
               <div className="form-row">
                 <label className="field">
@@ -136,13 +136,13 @@ export default function BuddyPortalSignupPage() {
                   </span>
                 </label>
               </div>
-              <p className="subhead">
+              <p className="text-white/70 m-0 text-lg">
                 Select all skills you are comfortable with. This determines job
                 requests you receive.
               </p>
             </div>
 
-            <div className="category-hero-card">
+            <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
               <h3>Location & availability</h3>
               <div className="form-row">
                 <label className="field">
@@ -174,7 +174,7 @@ export default function BuddyPortalSignupPage() {
               </div>
             </div>
 
-            <div className="category-hero-card">
+            <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
               <h3>Verification uploads</h3>
               <div className="form-row">
                 <label className="field">
@@ -186,13 +186,13 @@ export default function BuddyPortalSignupPage() {
                   <input type="file" />
                 </label>
               </div>
-              <p className="subhead">
+              <p className="text-white/70 m-0 text-lg">
                 Clear, well-lit images speed up review time.
               </p>
             </div>
 
             {error ? <p className="error">{error}</p> : null}
-            <button className="primary full" type="submit">
+            <button className="w-full px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity" type="submit">
               {isSubmitting ? "Submitting..." : "Submit application"}
             </button>
           </form>

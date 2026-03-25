@@ -32,7 +32,7 @@ export default function BuddyProfilePage() {
           <h1>{formData.name}</h1>
           <p className="profile-status">Active Buddy</p>
           <div className="profile-actions">
-            <button className="ghost" onClick={() => setIsEditing(true)}>
+            <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={() => setIsEditing(true)}>
               Edit Profile
             </button>
           </div>
@@ -40,25 +40,25 @@ export default function BuddyProfilePage() {
       </div>
 
       <div className="profile-stats">
-        <div className="stat-card">
+        <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors">
           <h3>Earnings (Today)</h3>
           <p className="stat-value">KES 1,200</p>
         </div>
-        <div className="stat-card">
+        <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors">
           <h3>Rating</h3>
           <p className="stat-value">4.8 ⭐</p>
         </div>
-        <div className="stat-card">
+        <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors">
           <h3>Jobs Completed</h3>
           <p className="stat-value">24</p>
         </div>
-        <div className="stat-card">
+        <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors">
           <h3>Response Time</h3>
           <p className="stat-value">15 min</p>
         </div>
       </div>
 
-      <section className="profile-section">
+      <section className="flex flex-col gap-6 animate-in fade-in duration-500">
         <h2>Personal Information</h2>
         <div className="profile-fields">
           <div className="field">
@@ -110,7 +110,7 @@ export default function BuddyProfilePage() {
         </div>
       </section>
 
-      <section className="profile-section">
+      <section className="flex flex-col gap-6 animate-in fade-in duration-500">
         <h2>Skills & Availability</h2>
         <div className="profile-fields">
           <div className="field">
@@ -124,7 +124,7 @@ export default function BuddyProfilePage() {
             </div>
             {isEditing && (
               <div className="skill-edit">
-                <button className="ghost small">Add Skill</button>
+                <button className="px-3 py-1.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs font-semibold transition-colors backdrop-blur">Add Skill</button>
               </div>
             )}
           </div>
@@ -156,10 +156,10 @@ export default function BuddyProfilePage() {
 
       {isEditing && (
         <div className="profile-edit-actions">
-          <button className="ghost" onClick={() => setIsEditing(false)}>
+          <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" onClick={() => setIsEditing(false)}>
             Cancel
           </button>
-          <button className="primary" onClick={handleSave}>
+          <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" onClick={handleSave}>
             Save Changes
           </button>
         </div>

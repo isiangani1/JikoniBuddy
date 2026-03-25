@@ -73,7 +73,7 @@ export default function BuyerPage() {
   const [homeSections, setHomeSections] = useState<HomeSection[]>([]);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("jb_auth") === "true";
+    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     if (!isLoggedIn) {
       router.replace("/login");
     }
@@ -87,13 +87,13 @@ export default function BuyerPage() {
   }, []);
 
   useEffect(() => {
-    const buyerServiceUrl =
-      process.env.NEXT_PUBLIC_BUYER_SERVICE_URL!;
-    fetch(`${buyerServiceUrl}/buyer/categories/header`)
+    const gatewayUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    fetch(`${gatewayUrl}/api/buyer/categories/header`)
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setHeaderCategories(data))
       .catch(() => setHeaderCategories([]));
-    fetch(`${buyerServiceUrl}/buyer/curated/home`)
+    fetch(`${gatewayUrl}/api/buyer/curated/home`)
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => setHomeSections(data))
       .catch(() => setHomeSections([]));
@@ -197,23 +197,28 @@ export default function BuyerPage() {
 
   return (
     <>
-      <main className="browse-content">
-        <div className="browse-header">
-          <div className="browse-search" style={{ position: "relative" }}>
+      <main className="flex flex-col gap-8 min-w-0">
+        <div className="mb-2">
+          <div className="relative flex flex-col md:flex-row gap-3">
             <input
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 placeholder:text-white/40 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-colors"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search meals, sellers, categories..."
             />
-            <button className="primary" type="button" onClick={handleSearch}>
+            <button 
+              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-medium transition-colors" 
+              type="button" 
+              onClick={handleSearch}
+            >
               Search
             </button>
             {suggestions.length ? (
-              <div className="dropdown-panel" style={{ opacity: 1, pointerEvents: "auto" }}>
+              <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-[#12021f]/95 backdrop-blur-md border border-white/12 rounded-xl p-2 shadow-2xl flex flex-col gap-1">
                 {suggestions.map((item) => (
                   <Link
                     key={item.href + item.label}
-                    className="dropdown-item"
+                    className="px-4 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
                     href={item.href}
                     onClick={() => setSearch("")}
                   >
@@ -225,7 +230,7 @@ export default function BuyerPage() {
           </div>
         </div>
 
-        <section className="category-strip">
+        <section className="flex overflow-x-auto gap-4 pb-4 mb-2 snap-x snap-mandatory scrollbar-thin">
           {(headerCategories.length ? headerCategories : fallbackCategories).map(
             (category) => {
               const name = typeof category === "string" ? category : category.name;
@@ -240,39 +245,44 @@ export default function BuyerPage() {
             return (
               <Link
                 key={slug}
-                className="category-pill"
+                className="flex flex-col gap-2.5 text-center text-[#f6efff] p-3 rounded-[18px] border border-white/12 bg-white/5 min-w-[120px] snap-center transition-all hover:-translate-y-1 hover:border-purple-500/45 hover:bg-white/10"
                 href={`/buyer/sellers?category=${slug}`}
               >
-                <div className="category-pill-image">
+                <div className="w-16 h-16 mx-auto rounded-full overflow-hidden border-2 border-white/15 bg-white/10 shrink-0">
                   <img
+                    className="w-full h-full object-cover"
                     src={imageUrl}
                     alt={name}
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <span>{name}</span>
+                <span className="text-sm font-medium">{name}</span>
               </Link>
             );
           })}
         </section>
 
-        <section className="hero-banner">
-          <div className="hero-content">
-            <h2>Free Delivery on Your First Order!</h2>
-            <p>Use code <strong>JIKONI-NEW</strong> at checkout to redeem.</p>
-            <button className="primary">Order Now</button>
+        <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-purple-800 to-[#12021f] border border-white/10 p-8 md:p-12 mb-4">
+          <div className="absolute top-0 right-0 bottom-0 w-1/2 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent"></div>
+          <div className="relative z-10 max-w-xl flex flex-col gap-4">
+            <h2 className="text-3xl md:text-4xl font-bold m-0 text-white">Free Delivery on Your First Order!</h2>
+            <p className="text-lg text-white/80 m-0">Use code <strong className="text-purple-300">JIKONI-NEW</strong> at checkout to redeem.</p>
+            <button className="bg-white text-purple-900 px-6 py-3 rounded-full font-bold self-start mt-2 hover:bg-purple-100 transition-colors">
+              Order Now
+            </button>
           </div>
         </section>
 
-        <section className="browse-section">
-          <div className="buyer-location-card">
+        <section className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-5 rounded-[18px] border border-white/10 bg-white/5">
             <div>
-              <h3>Delivery location</h3>
-              <p className="muted">Used for delivery pricing and nearby sellers.</p>
+              <h3 className="text-lg font-semibold m-0">Delivery location</h3>
+              <p className="text-sm text-white/60 m-0 mt-1">Used for delivery pricing and nearby sellers.</p>
             </div>
-            <div className="location-inputs">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <input
+                className="bg-[#12021f]/50 border border-white/10 rounded-xl px-4 py-2.5 min-w-[240px] focus:outline-none focus:border-purple-500/50"
                 value={deliveryLocation}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -282,7 +292,7 @@ export default function BuyerPage() {
                 placeholder="Enter your location"
               />
               <button
-                className="ghost"
+                className="px-4 py-2.5 rounded-xl border border-white/10 bg-transparent hover:bg-white/5 whitespace-nowrap transition-colors"
                 type="button"
                 onClick={handleUseCurrentLocation}
               >
@@ -310,9 +320,9 @@ export default function BuyerPage() {
               { id: "stock-up", title: "Stock up groceries", products: popularProducts.slice(6, 12) }
             ]
         ).map((section) => (
-          <section key={section.id} className="browse-section">
-            <h2 id={section.id}>{section.title}</h2>
-            <div className="product-carousel">
+          <section key={section.id} className="mb-10 flex flex-col gap-4">
+            <h2 id={section.id} className="text-2xl font-bold m-0">{section.title}</h2>
+            <div className="flex overflow-x-auto gap-5 pb-4 snap-x pr-4 scrollbar-thin">
               {section.products.map((product) => {
                 const link =
                   "sellerId" in product
@@ -326,30 +336,31 @@ export default function BuyerPage() {
                 <Link
                   key={product.id}
                   href={link}
-                  className="product-card"
+                  className="relative flex flex-col rounded-[20px] overflow-hidden border border-white/12 bg-white/5 transition-all hover:-translate-y-1 hover:border-purple-500/45 group shrink-0 w-[240px] snap-start"
                 >
-                  <div className="product-image">
+                  <div className="h-[160px] overflow-hidden bg-white/5 w-full">
                     <img
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       src={imageUrl}
                       alt={product.name}
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
                   </div>
-                  <div className="product-meta">
-                    <h3>{product.name}</h3>
-                    <p className="muted">
+                  <div className="p-4 flex flex-col gap-1.5 flex-1">
+                    <h3 className="m-0 text-[1.1rem] font-semibold line-clamp-1">{product.name}</h3>
+                    <p className="text-sm text-white/60 m-0 line-clamp-2 min-h-[40px]">
                       {"description" in product ? product.description : ""}
                     </p>
-                    <div className="product-footer">
-                      <span>
+                    <div className="flex justify-between items-center mt-2 text-sm">
+                      <span className="text-white/80 font-medium truncate mr-2">
                         {"sellerName" in product ? product.sellerName : "Jikoni Buddy"}
                       </span>
-                      <strong>KES {product.price}</strong>
+                      <strong className="text-purple-300 whitespace-nowrap">KES {product.price}</strong>
                     </div>
                   </div>
                   <button 
-                    className="quick-add-btn" 
+                    className="absolute top-3 right-3 p-2 rounded-full bg-purple-600/90 backdrop-blur hover:bg-purple-500 text-white shadow-lg opacity-0 transform translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300" 
                     onClick={(e) => {
                       e.preventDefault();
                       // Prevent navigation and add to cart

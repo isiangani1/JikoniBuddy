@@ -61,7 +61,7 @@ export default function CapacityManager() {
   return (
     <main style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
       <header style={{ marginBottom: "2rem" }}>
-        <p className="eyebrow">Logistics & Load</p>
+        <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Logistics & Load</p>
         <h1>Smart Capacity Engine</h1>
         <p style={{ color: "rgba(255,255,255,0.6)", marginTop: "0.5rem" }}>
           Control exactly how much load your kitchen can take. If the threshold is breached, the engine will either stop orders or automatically broadcast an SOS to the Buddy Pool based on your preferences.
@@ -160,7 +160,7 @@ export default function CapacityManager() {
         </div>
       </section>
 
-      <button className="primary" style={{ width: "100%", padding: "1rem" }} onClick={() => saveSettingsMutation.mutate(settings)} disabled={saveSettingsMutation.isPending}>
+      <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ width: "100%", padding: "1rem" }} onClick={() => saveSettingsMutation.mutate(settings)} disabled={saveSettingsMutation.isPending}>
         {saveSettingsMutation.isPending ? "Saving..." : "Save Smart Logic Thresholds"}
       </button>
 

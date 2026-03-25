@@ -20,6 +20,12 @@ export type CompleteAssignmentDto = {
   statusNote?: string;
 };
 
+export type CreatePayoutRequestDto = {
+  amount: number;
+  mpesaNumber: string;
+  note?: string;
+};
+
 export type CreateRatingDto = {
   requestId: string;
   helperId: string;

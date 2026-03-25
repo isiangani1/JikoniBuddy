@@ -12,8 +12,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <div className="app-shell">{children}</div>
+      <body className="min-h-screen bg-[radial-gradient(circle_at_top,_#4a138a_0%,_#24073d_45%,_#12021f_100%)] text-[#f6f1fb]">
+        <div className="min-h-screen">{children}</div>
       </body>
     </html>
   );

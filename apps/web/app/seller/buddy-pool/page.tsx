@@ -93,11 +93,11 @@ export default function SellerBuddyPoolPage() {
     <main style={{ padding: "1rem" }}>
       <header style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem" }}>
         <div>
-          <p className="eyebrow">On-Demand Human Capital</p>
+          <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">On-Demand Human Capital</p>
           <h1 style={{ margin: "0.2rem 0" }}>Buddy Pool Management</h1>
           <p style={{ color: "rgba(255,255,255,0.6)", margin: 0 }}>Scale your kitchen staff elastically in real-time.</p>
         </div>
-        <button className="primary" style={{ background: "#7C5CFF" }} onClick={() => setIsSOSModalOpen(true)}>
+        <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ background: "#7C5CFF" }} onClick={() => setIsSOSModalOpen(true)}>
           🚨 Broadcast SOS Request
         </button>
       </header>
@@ -145,7 +145,7 @@ export default function SellerBuddyPoolPage() {
                               <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>⭐ 4.9 (24 jobs)</span>
                             </div>
                           </div>
-                          <button className="primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => assignBuddyMutation.mutate({ requestId: req.id, applicationId: app.id, helperId: app.helperId })}>
+                          <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => assignBuddyMutation.mutate({ requestId: req.id, applicationId: app.id, helperId: app.helperId })}>
                             Hire
                           </button>
                         </div>
@@ -170,7 +170,7 @@ export default function SellerBuddyPoolPage() {
                           </div>
                         </div>
                         <button 
-                          className="ghost" 
+                          className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" 
                           style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", padding: "0.5rem 1rem", borderRadius: "6px" }}
                           onClick={() => setRatingModal({ isOpen: true, assignmentId: asgn.id, helperId: asgn.helperId, helperName: asgn.helper.user.name })}
                         >
@@ -295,7 +295,7 @@ export default function SellerBuddyPoolPage() {
                   Cancel
                 </button>
                 <button 
-                  className="primary" 
+                  className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" 
                   style={{ flex: 1, padding: "1rem", borderRadius: "12px" }}
                   onClick={() => createSOSMutation.mutate(sosForm)}
                   disabled={createSOSMutation.isPending}
@@ -347,7 +347,7 @@ export default function SellerBuddyPoolPage() {
                 Skip
               </button>
               <button 
-                className="primary" 
+                className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" 
                 style={{ flex: 1, background: "#2dd4bf", color: "#1a1026", padding: "1rem", borderRadius: "12px" }}
                 onClick={() => completeAssignmentMutation.mutate({ assignmentId: ratingModal.assignmentId, helperId: ratingModal.helperId, ...ratingData })}
                 disabled={completeAssignmentMutation.isPending}

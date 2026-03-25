@@ -59,10 +59,10 @@ export function RadialPerformanceChart({
   const strokeWidth = 14;
 
   return (
-    <div className="chart-card">
+    <div className="chart- bg-white/5 border border-white/10 rounded-[24px] p-6 flex flex-col gap-4 hover:border-white/20 transition-colors">
       <div className="chart-title">
         <h3>{title}</h3>
-        <p className="muted">{subtitle}</p>
+        <p className="text-white/50 text-sm">{subtitle}</p>
       </div>
       <svg width={size} height={size} className="radial-chart">
         <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
@@ -171,7 +171,7 @@ export function TrendLineChart({
     ];
 
   return (
-    <div className="chart-card chart-card-linef">
+    <div className="chart- bg-white/5 border border-white/10 rounded-[24px] p-6 flex flex-col gap-4 hover:border-white/20 transition-colors chart- bg-white/5 border border-white/10 rounded-[24px] p-6 flex flex-col gap-4 hover:border-white/20 transition-colors -linef">
       <div className="chart-title line-title">
         <div>
           <h3>{title}</h3>
@@ -261,7 +261,7 @@ export function TrendLineChart({
               x={axisLeft - 10}
               y={y + 4}
               textAnchor="end"
-              className="axis-label"
+              className="axis- text-white/60 text-xs font-bold uppercase tracking-wider"
             >
               {label}
             </text>
@@ -276,7 +276,7 @@ export function TrendLineChart({
               x={x}
               y={axisBottom + 22}
               textAnchor="middle"
-              className="axis-label"
+              className="axis- text-white/60 text-xs font-bold uppercase tracking-wider"
             >
               {label}
             </text>
@@ -300,15 +300,15 @@ export function TrendLineChart({
           Date (x) 2026
         </text>
       </svg>
-      <div className="line-badge">
-        <div className="badge-ring" />
+      <div className="line- inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30">
+        <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30 -ring" />
         <div>
-          <span className="badge-value">{headlineValue ?? "43,000"}</span>
-          <span className="badge-label">{headlineLabel ?? "Revenue lost"}</span>
+          <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30 -value">{headlineValue ?? "43,000"}</span>
+          <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30 - text-white/60 text-xs font-bold uppercase tracking-wider">{headlineLabel ?? "Revenue lost"}</span>
         </div>
       </div>
       <div className="chart-footer">
-        <span className="muted">
+        <span className="text-white/50 text-sm">
           {footerLeft ?? `Latest: ${points[points.length - 1]}`}
         </span>
         <span className="trend-tag">{footerRight ?? "+8.4% this week"}</span>
@@ -326,10 +326,10 @@ export function SimpleBarChart({
 }) {
   const maxValue = Math.max(...data.map(d => d.value), 1);
   return (
-    <div className="chart-card">
+    <div className="chart- bg-white/5 border border-white/10 rounded-[24px] p-6 flex flex-col gap-4 hover:border-white/20 transition-colors">
       <div className="chart-title">
         <h3>{title}</h3>
-        <p className="muted">{subtitle}</p>
+        <p className="text-white/50 text-sm">{subtitle}</p>
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '160px', marginTop: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
         {data.map(bar => (
@@ -347,10 +347,53 @@ export function SimpleBarChart({
       </div>
       { (footerLeft || footerRight) && (
         <div className="chart-footer" style={{ marginTop: '1rem' }}>
-          <span className="muted">{footerLeft}</span>
+          <span className="text-white/50 text-sm">{footerLeft}</span>
           <span className="trend-tag">{footerRight}</span>
         </div>
       )}
     </div>
+  );
+}
+
+export function SparklineChart({
+  points,
+  color = "#3BC8D6",
+  height = 48
+}: {
+  points: number[];
+  color?: string;
+  height?: number;
+}) {
+  if (!points || points.length === 0) {
+    return (
+      <div style={{ height, display: "flex", alignItems: "center", color: "rgba(255,255,255,0.4)", fontSize: "0.75rem" }}>
+        No data
+      </div>
+    );
+  }
+  const width = 140;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const padding = 6;
+  const path = points
+    .map((point, index) => {
+      const x = padding + (index / (points.length - 1 || 1)) * (width - padding * 2);
+      const y = height - padding - ((point - min) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

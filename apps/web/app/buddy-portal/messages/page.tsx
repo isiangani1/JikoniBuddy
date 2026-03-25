@@ -51,8 +51,8 @@ export default function BuddyPortalMessagesPage() {
         <section className="buddy-chat-grid">
           <aside className="chat-sidebar">
             <h2>Active threads</h2>
-            <div className="table-card">
-              <table className="data-table">
+            <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden">
+              <table className="w-full text-left text-sm text-white">
                 <thead>
                   <tr>
                     <th>Seller</th>
@@ -77,7 +77,7 @@ export default function BuddyPortalMessagesPage() {
             <div className="chat-header">
               <div>
                 <h2>Chef Amani</h2>
-                <p className="muted">Packaging shift · Westlands</p>
+                <p className="text-white/50 text-sm">Packaging shift · Westlands</p>
               </div>
               <span className="status-pill status-open">Live</span>
             </div>
@@ -91,13 +91,13 @@ export default function BuddyPortalMessagesPage() {
                 >
                   <span>{message.sender}</span>
                   <p>{message.body}</p>
-                  <span className="muted">{message.time}</span>
+                  <span className="text-white/50 text-sm">{message.time}</span>
                 </div>
               ))}
             </div>
             <div className="chat-input">
               <input placeholder="Write a quick update..." />
-              <button className="primary" type="button">
+              <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" type="button">
                 Send
               </button>
             </div>

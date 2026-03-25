@@ -15,8 +15,12 @@ export default function SellerSOSButton() {
 
   useEffect(() => {
     // Listen for jobs completed by buddies targeted to this seller
-    const socketUrl = process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-    const socket = io(socketUrl, { query: { userId: sellerId } });
+    const socketBase =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketBase}/ws/buddy`, {
+      query: { userId: sellerId },
+      transports: ["websocket"]
+    });
 
     socket.on('seller.job_awaiting_approval', (payload) => {
       setApprovalJob(payload);
@@ -34,8 +38,9 @@ export default function SellerSOSButton() {
   const handleConfirm = async (helperId: string) => {
     if (!activeRequest) return;
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL!;
-      await fetch(`${baseUrl}/buddy/requests/${activeRequest.id}/confirm`, {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+      await fetch(`${baseUrl}/api/buddy/requests/${activeRequest.id}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ helperId })
@@ -88,7 +93,7 @@ export default function SellerSOSButton() {
             </p>
             <div style={{ display: "flex", gap: "1rem" }}>
               <button 
-                className="primary" 
+                className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" 
                 style={{ flex: 1 }} 
                 onClick={() => {
                   alert(`Payout of KES ${approvalJob.payAmount} released!`);

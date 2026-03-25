@@ -124,7 +124,7 @@ export default function BuddyPortalDashboard() {
         footerLeft: string;
         footerRight: string;
       };
-    }>(`/buddy/users/${buddyId}/dashboard-metrics`)
+    }>(`/users/${buddyId}/dashboard-metrics`)
       .then((data) => {
         if (data?.radial) {
           setRadial((prev) => ({ ...prev, ...data.radial }));
@@ -139,41 +139,37 @@ export default function BuddyPortalDashboard() {
   // Removed toggleOnline function as local state and toggle button are removed.
 
   return (
-    <main className="category-page">
-      <section className="section fade-in">
+    <main className="flex flex-col gap-8 w-full max-w-6xl mx-auto">
+      <section className="flex flex-col gap-6 animate-in fade-in duration-500">
 
-
-
-        <div className="earnings-tracker-card">
-          <div className="earnings-header">
+        <div className="bg-[#12021f] border border-white/10 rounded-[20px] p-6 shadow-xl">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 style={{ margin: 0 }}>Daily Earnings Goal</h3>
-              <p style={{ margin: '0.2rem 0 0', color: 'rgba(255,255,255,0.6)' }}>KES 1,200 / KES 3,000</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
+              <h3 className="text-xl font-bold m-0 text-white">Daily Earnings Goal</h3>
+              <p className="text-sm text-white/60 m-0 mt-1">KES 1,200 / KES 3,000</p>
             </div>
           </div>
-          <div className="earnings-progress-bar">
-            <div className="earnings-progress-fill" style={{ width: '40%' }}></div>
+          <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: '40%' }}></div>
           </div>
         </div>
 
-        <div className="dashboard-tiles">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {statTiles.map((tile) => (
-            <Link key={tile.label} className="dashboard-tile" href={tile.href}>
+            <Link key={tile.label} className="flex items-center justify-between p-5 rounded-[18px] bg-white/5 border border-white/10 hover:border-purple-500/50 hover:bg-white/10 transition-colors group cursor-pointer" href={tile.href}>
               <div>
-                <span className="tile-label">{tile.label}</span>
-                <h3>{tile.value}</h3>
-                <p className="muted">{tile.note}</p>
+                <span className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1 block">{tile.label}</span>
+                <h3 className="text-2xl font-bold text-white m-0">{tile.value}</h3>
+                <p className="text-sm text-white/60 m-0 mt-1">{tile.note}</p>
               </div>
-              <span className="tile-arrow">→</span>
+              <span className="text-xl text-purple-400 group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="section fade-in">
-        <div className="dashboard-charts">
+      <section className="flex flex-col gap-6 animate-in fade-in duration-500 delay-100">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RadialPerformanceChart
             title={radial.title}
             subtitle={radial.subtitle}

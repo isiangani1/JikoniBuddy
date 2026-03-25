@@ -38,7 +38,7 @@ export default function SellerFinancialsPage() {
     }
   });
 
-  if (isLoading) return <div style={{ padding: "2rem", color: "white" }}>Syncing with bank node...</div>;
+  if (isLoading) return <div className="p-8 text-center text-white/50"><p className="animate-pulse">Syncing with bank node...</p></div>;
 
   const payments = data?.payments || [];
   const earnings = data?.earnings || [];
@@ -46,21 +46,20 @@ export default function SellerFinancialsPage() {
   const pendingBalance = data?.pendingBalance || 0;
 
   return (
-    <main style={{ padding: "1rem" }}>
-      <header style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <p className="eyebrow">Finance & Ledger</p>
-          <h1 style={{ margin: "0.2rem 0" }}>Earnings & Payouts</h1>
-          <p style={{ color: "rgba(255,255,255,0.6)", margin: 0 }}>Monitor your cash flow and request instant M-Pesa withdrawals.</p>
+    <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8">
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+        <div className="flex flex-col gap-2">
+          <p className="text-teal-400 font-bold tracking-widest uppercase text-sm m-0">Finance & Ledger</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white m-0">Earnings & Payouts</h1>
+          <p className="text-white/60 m-0 text-lg">Monitor your cash flow and request instant M-Pesa withdrawals.</p>
         </div>
-        <div style={{ display: "flex", gap: "1rem" }}>
-           <div style={{ background: "rgba(45,212,191,0.05)", border: "1px solid rgba(45,212,191,0.2)", padding: "1rem", borderRadius: "12px", textAlign: "right" }}>
-              <p className="eyebrow" style={{ color: "#2dd4bf" }}>AVAILABLE FOR PAYOUT</p>
-              <h2 style={{ margin: 0 }}>KES {totalBalance.toLocaleString()}</h2>
+        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+           <div className="bg-teal-400/5 border border-teal-400/20 px-6 py-4 rounded-2xl flex flex-col sm:items-end flex-grow sm:flex-grow-0">
+              <p className="text-teal-400/80 font-bold tracking-widest uppercase text-[10px] m-0 mb-1">Available For Payout</p>
+              <h2 className="text-3xl font-extrabold text-white m-0 tracking-tight">KES {totalBalance.toLocaleString()}</h2>
            </div>
            <button 
-             className="primary" 
-             style={{ background: "#2dd4bf", color: "#1a1026", fontWeight: "bold", padding: "0 2rem" }}
+             className="px-8 py-4 sm:py-0 sm:h-[84px] rounded-2xl bg-teal-400 hover:bg-teal-300 disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed text-[#1a1026] font-extrabold text-lg transition-all shadow-lg shadow-teal-400/20 active:scale-95"
              disabled={totalBalance <= 0 || payoutMutation.isPending}
              onClick={() => payoutMutation.mutate(totalBalance)}
            >
@@ -69,51 +68,69 @@ export default function SellerFinancialsPage() {
         </div>
       </header>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "3rem" }}>
-        <section style={{ background: "rgba(255,255,255,0.05)", borderRadius: "20px", padding: "1.5rem", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <h3 style={{ marginBottom: "1.5rem" }}>Recent M-Pesa Transactions</h3>
-          <div style={{ display: "grid", gap: "1rem" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <section className="bg-white/5 rounded-[24px] p-6 sm:p-8 border border-white/10 shadow-2xl flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-teal-400/10 text-teal-400 flex items-center justify-center text-xl">💸</span>
+            <h3 className="text-xl font-bold text-white m-0">Recent Inflow</h3>
+          </div>
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2" style={{ maxHeight: "500px" }}>
             {payments.map((p: any) => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)", padding: "1rem", borderRadius: "12px" }}>
-                <div>
-                  <span style={{ display: "block", fontSize: "0.9rem", fontWeight: "bold" }}>Order #{p.orderId.slice(-6)}</span>
-                  <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>{new Date(p.createdAt).toLocaleString()} • {p.order.buyer.name}</span>
+              <div key={p.id} className="flex justify-between items-center bg-black/20 hover:bg-white/5 transition-colors p-4 rounded-xl border border-white/5">
+                <div className="flex flex-col gap-1">
+                  <span className="text-white font-bold text-[15px]">Order #{p.orderId.slice(-6)}</span>
+                  <span className="text-xs text-white/50 font-medium">
+                    {new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} • {p.order.buyer.name}
+                  </span>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ display: "block", fontWeight: "bold", color: "#2dd4bf" }}>+KES {p.amount}</span>
-                  <span style={{ fontSize: "0.7rem", color: "#2dd4bf", textTransform: "uppercase" }}>{p.status}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="font-bold text-teal-400 text-[15px]">+KES {p.amount}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-teal-400/20 bg-teal-400/10 text-teal-400 uppercase tracking-widest">{p.status}</span>
                 </div>
               </div>
             ))}
-            {payments.length === 0 && <p style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.3)" }}>No transactions yet.</p>}
+            {payments.length === 0 && (
+              <div className="h-full flex flex-col items-center justify-center text-white/40 py-12 border-2 border-dashed border-white/10 rounded-xl gap-2">
+                <span className="text-3xl opacity-50">🧾</span>
+                <p className="m-0 text-sm font-medium">No inflow transactions yet.</p>
+              </div>
+            )}
           </div>
         </section>
 
-        <section style={{ background: "rgba(255,255,255,0.05)", borderRadius: "20px", padding: "1.5rem", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <h3 style={{ marginBottom: "1.5rem" }}>Payout History</h3>
-          <div style={{ display: "grid", gap: "1rem" }}>
+        <section className="bg-white/5 rounded-[24px] p-6 sm:p-8 border border-white/10 shadow-2xl flex flex-col gap-6">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">🏦</span>
+            <h3 className="text-xl font-bold text-white m-0">Payout History</h3>
+          </div>
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2" style={{ maxHeight: "500px" }}>
              {earnings.filter((e: any) => e.type === "withdrawal").map((e: any) => (
-                <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.03)", padding: "1rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div>
-                    <span style={{ display: "block", fontSize: "0.9rem", fontWeight: "bold" }}>M-Pesa Withdrawal</span>
-                    <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>{new Date(e.createdAt).toLocaleDateString()}</span>
+                <div key={e.id} className="flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors p-4 rounded-xl border border-white/5">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-white font-bold text-[15px]">M-Pesa Withdrawal</span>
+                    <span className="text-xs text-white/50 font-medium">{new Date(e.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <span style={{ display: "block", fontWeight: "bold" }}>-KES {e.amount}</span>
-                    <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.4)" }}>SUCCESS</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-bold text-white text-[15px]">-KES {e.amount}</span>
+                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">Success</span>
                   </div>
                 </div>
              ))}
-             {earnings.filter((e: any) => e.type === "withdrawal").length === 0 && <p style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.3)" }}>No past payouts found.</p>}
+             {earnings.filter((e: any) => e.type === "withdrawal").length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-white/40 py-12 border-2 border-dashed border-white/10 rounded-xl gap-2">
+                  <span className="text-3xl opacity-50">🏧</span>
+                  <p className="m-0 text-sm font-medium">No past payouts found.</p>
+                </div>
+             )}
           </div>
         </section>
       </div>
 
-      <div style={{ background: "rgba(124, 92, 255, 0.1)", border: "1px solid #7C5CFF", padding: "1.5rem", borderRadius: "16px", display: "flex", alignItems: "center", gap: "1.5rem" }}>
-        <div style={{ fontSize: "2rem" }}>💡</div>
-        <div>
-          <h4 style={{ margin: "0 0 0.2rem", color: "#d8c5ff" }}>Pro-Tip: Elastic Payouts</h4>
-          <p style={{ margin: 0, fontSize: "0.9rem", color: "rgba(255,255,255,0.8)" }}>Withdrawals under KES 50,000 are processed instantly to your registered M-Pesa number. Larger amounts may take up to 4 hours for AML verification.</p>
+      <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-500/30 p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-5 shadow-xl shadow-purple-900/20">
+        <div className="w-14 h-14 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center text-2xl flex-shrink-0 animate-pulse border border-purple-500/30">💡</div>
+        <div className="flex flex-col gap-1">
+          <h4 className="m-0 text-purple-200 font-bold text-lg">Pro-Tip: Elastic Payouts</h4>
+          <p className="m-0 text-sm text-purple-200/70 leading-relaxed font-medium">Withdrawals under <strong className="text-purple-300">KES 50,000</strong> are processed instantly to your registered M-Pesa number. Larger amounts may take up to 4 hours for AML verification.</p>
         </div>
       </div>
     </main>

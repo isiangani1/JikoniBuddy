@@ -84,42 +84,43 @@ export default function OrderWidget() {
 
   return (
     <>
-      <div className="order-widget">
-        <h3>Schedule an Order</h3>
-        <label className="field">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_24px_60px_rgba(20,6,40,0.35)]">
+        <h3 className="text-lg font-semibold text-white">Schedule an Order</h3>
+        <label className="mt-4 flex flex-col gap-2 text-sm text-white/70">
           <span>Delivery Location</span>
           <input
             value={location}
             onChange={(event) => setLocation(event.target.value)}
             placeholder="Enter location"
+            className="rounded-xl border border-white/10 bg-[#1a1026] px-4 py-3 text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none"
           />
         </label>
-        <div className="location-actions">
-          <button type="button" className="ghost" onClick={handleUseCurrent}>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <button type="button" className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/70 hover:text-white" onClick={handleUseCurrent}>
             Use my location
           </button>
-          <button type="button" className="ghost" onClick={handlePickFromMap}>
+          <button type="button" className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/70 hover:text-white" onClick={handlePickFromMap}>
             Pick on map
           </button>
           <button
             type="button"
-            className="ghost"
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/70 hover:text-white disabled:opacity-50"
             onClick={handleSearchLocation}
             disabled={isSearching}
           >
             {isSearching ? "Searching..." : "Search location"}
           </button>
         </div>
-        <label className="field">
+        <label className="mt-4 flex flex-col gap-2 text-sm text-white/70">
           <span>Date</span>
-          <input type="date" />
+          <input type="date" className="rounded-xl border border-white/10 bg-[#1a1026] px-4 py-3 text-white focus:border-white/30 focus:outline-none" />
         </label>
-        <label className="field">
+        <label className="mt-4 flex flex-col gap-2 text-sm text-white/70">
           <span>Time Window</span>
-          <input placeholder="12:00 - 14:00" />
+          <input placeholder="12:00 - 14:00" className="rounded-xl border border-white/10 bg-[#1a1026] px-4 py-3 text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none" />
         </label>
         <button
-          className="primary full"
+          className="mt-6 w-full rounded-full bg-[#2dd4bf] px-4 py-3 text-sm font-semibold text-[#0d0a14] hover:opacity-90"
           type="button"
           onClick={() => router.push("/buyer")}
         >
@@ -128,37 +129,33 @@ export default function OrderWidget() {
       </div>
 
       {isMapOpen ? (
-        <div className="map-modal">
-          <div className="map-sheet">
-            <div className="map-header">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#120c1c] p-6 shadow-[0_24px_60px_rgba(20,6,40,0.35)]">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <h3>Pick a delivery pin</h3>
-                <p className="muted">Drag the pin to your exact drop-off point.</p>
-                {mapError ? <p className="error">{mapError}</p> : null}
+                <h3 className="text-lg font-semibold text-white">Pick a delivery pin</h3>
+                <p className="text-sm text-white/60">Drag the pin to your exact drop-off point.</p>
+                {mapError ? <p className="text-sm text-red-400">{mapError}</p> : null}
               </div>
-              <button className="ghost" onClick={() => setIsMapOpen(false)}>
+              <button className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 hover:text-white" onClick={() => setIsMapOpen(false)}>
                 Close
               </button>
             </div>
-            <div className="map-preview">
+            <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-xl border border-white/10 bg-black/20 text-sm text-white/60">
               {mapSrc ? (
-                <iframe
-                  title="Delivery map"
-                  className="map-iframe"
-                  src={mapSrc}
-                />
+                <iframe title="Delivery map" className="h-[280px] w-full rounded-xl" src={mapSrc} />
               ) : (
-                <>
-                  <div className="map-pin">📍</div>
+                <div className="text-center">
+                  <div className="text-2xl">📍</div>
                   <p>Search or use current location to load the map.</p>
-                </>
+                </div>
               )}
             </div>
-            <div className="map-actions">
-              <button className="ghost" onClick={() => setIsMapOpen(false)}>
+            <div className="mt-4 flex justify-end gap-3">
+              <button className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 hover:text-white" onClick={() => setIsMapOpen(false)}>
                 Cancel
               </button>
-              <button className="primary" onClick={handleConfirmPin}>
+              <button className="rounded-full bg-[#2dd4bf] px-4 py-2 text-sm font-semibold text-[#0d0a14]" onClick={handleConfirmPin}>
                 Use this location
               </button>
             </div>

@@ -13,10 +13,10 @@ export default function BuddyProfilePage() {
     return (
       <>
         <SiteHeader />
-        <main className="category-page">
-          <section className="section fade-in">
+        <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+          <section className="flex flex-col gap-6 animate-in fade-in duration-500">
             <h2>Buddy not found</h2>
-            <p className="muted">Please return to Buddy Pool.</p>
+            <p className="text-white/50 text-sm">Please return to Buddy Pool.</p>
           </section>
         </main>
         <SiteFooter />
@@ -27,25 +27,25 @@ export default function BuddyProfilePage() {
   return (
     <>
       <SiteHeader />
-      <main className="category-page">
-        <section className="category-hero">
-          <div className="category-hero-content">
-            <p className="eyebrow">Buddy Profile</p>
+      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0">
+        <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
+          <div className="flex-1 flex flex-col gap-2 justify-center">
+            <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Buddy Profile</p>
             <h1>{buddy.name}</h1>
-            <p className="subhead">{buddy.role}</p>
-            <p className="muted">Rating {buddy.rating.toFixed(1)} ★</p>
-            <div className="hero-actions">
+            <p className="text-white/70 m-0 text-lg">{buddy.role}</p>
+            <p className="text-white/50 text-sm">Rating {buddy.rating.toFixed(1)} ★</p>
+            <div className="flex flex-wrap gap-3 mt-4">
               {buddy.skills.map((skill) => (
-                <span key={skill} className="badge">
+                <span key={skill} className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold text-xs border border-purple-500/30">
                   {skill}
                 </span>
               ))}
             </div>
           </div>
-          <div className="category-hero-card">
+          <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
             <h3>Reserve this buddy</h3>
-            <p className="muted">Available for flexible schedules.</p>
-            <button className="primary full">Request Buddy</button>
+            <p className="text-white/50 text-sm">Available for flexible schedules.</p>
+            <button className="w-full px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity">Request Buddy</button>
           </div>
         </section>
       </main>
