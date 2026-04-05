@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaClient } from "../../../prisma/generated/client";
+import { PrismaClient } from "@prisma/client";
 
 // Utilizing a local PrismaClient for the Menu service to avoid monorepo cyclic issues in MVP
 const prisma = new PrismaClient();

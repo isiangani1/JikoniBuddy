@@ -6,6 +6,7 @@ type LocationPayload = {
   lat: number;
   lng: number;
   timestamp?: string;
+  accuracy?: number;
 };
 
 export class LocationStore {
@@ -23,7 +24,8 @@ export class LocationStore {
       timestamp: payload.timestamp ?? new Date().toISOString()
     };
     if (this.redis) {
-      await this.redis.setex(`tracking:${payload.orderId}`, 30, JSON.stringify(data));
+      const ttl = Number(process.env.TRACKING_TTL_SECONDS ?? 30);
+      await this.redis.setex(`tracking:${payload.orderId}`, ttl, JSON.stringify(data));
       return;
     }
     this.memory.set(payload.orderId, data);

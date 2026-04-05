@@ -257,22 +257,40 @@ export class BuddyPoolService {
   async getUser(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        displayName: true,
-        email: true,
-        role: true,
-        status: true
+      include: {
+        skills: true,
+        availability: true,
+        helperProfile: true,
+        ratings: {
+          select: {
+            rating: true
+          }
+        }
       }
     });
 
     if (!user) return null;
+
+    const avgRating = user.ratings.length > 0 
+      ? user.ratings.reduce((acc, r) => acc + r.rating, 0) / user.ratings.length 
+      : 5.0;
+
     return {
       id: user.id,
       name: user.displayName ?? user.name ?? user.email.split("@")[0],
       role: user.role,
-      status: user.status
+      status: user.status,
+      rating: avgRating,
+      ratingCount: user.ratings.length,
+      profilePhotoUrl: user.profilePhotoUrl,
+      skills: user.skills.map(s => s.taskType),
+      availability: user.availability.map(a => ({
+        dayOfWeek: a.dayOfWeek,
+        startTime: a.startTime,
+        endTime: a.endTime
+      })),
+      isOnline: user.helperProfile?.isOnline ?? false,
+      jobsCompleted: user.helperProfile?.jobsCompleted ?? 0
     };
   }
 

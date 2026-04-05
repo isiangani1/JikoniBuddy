@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 
 export default function PortalGuard({
   role,
+  allowGuest = false,
   children
 }: {
   role: "buyer" | "seller" | "admin" | "buddy";
+  allowGuest?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -16,12 +18,20 @@ export default function PortalGuard({
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     const storedRole = sessionStorage.getItem("jb_role");
-    if (!isLoggedIn || storedRole !== role) {
+    if (!isLoggedIn) {
+      if (allowGuest) {
+        setIsReady(true);
+        return;
+      }
+      router.replace("/");
+      return;
+    }
+    if (storedRole !== role) {
       router.replace("/");
       return;
     }
     setIsReady(true);
-  }, [role, router]);
+  }, [role, router, allowGuest]);
 
   if (!isReady) return null;
   return <>{children}</>;

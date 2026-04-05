@@ -6,6 +6,8 @@ import { HealthController } from './health.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { FailureHandlingService } from './failure.service';
 import { SellerRealtimeGateway } from './realtime/seller-realtime.gateway';
+import { MetricsController } from './metrics.controller';
+import { MetricsService } from './metrics.service';
 
 @Module({
   imports: [
@@ -17,7 +19,7 @@ import { SellerRealtimeGateway } from './realtime/seller-realtime.gateway';
       },
     ]),
   ],
-  controllers: [AppController, EventsController, HealthController],
-  providers: [AppService, FailureHandlingService, SellerRealtimeGateway],
+  controllers: [AppController, EventsController, HealthController, MetricsController],
+  providers: [AppService, FailureHandlingService, SellerRealtimeGateway, MetricsService],
 })
 export class AppModule {}

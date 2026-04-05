@@ -6,7 +6,10 @@ const services = [
   { name: "buddy", url: process.env.BUDDY_SERVICE_URL ?? "http://127.0.0.1:4005", path: "/buddy/requests?status=open" },
   { name: "seller", url: process.env.SELLER_SERVICE_URL ?? "http://127.0.0.1:4007", path: "/" },
   { name: "order", url: process.env.ORDER_SERVICE_URL ?? "http://127.0.0.1:4004", path: "/" },
-  { name: "menu", url: process.env.MENU_SERVICE_URL ?? "http://127.0.0.1:4006", path: "/" }
+  { name: "menu", url: process.env.MENU_SERVICE_URL ?? "http://127.0.0.1:4006", path: "/" },
+  { name: "payout", url: process.env.PAYOUT_SERVICE_URL ?? "http://127.0.0.1:4016", path: "/health" },
+  { name: "notification", url: process.env.NOTIFICATION_SERVICE_URL ?? "http://127.0.0.1:4011", path: "/health" },
+  { name: "payment", url: process.env.PAYMENT_SERVICE_URL ?? "http://127.0.0.1:4008", path: "/health" }
 ];
 
 const timeoutMs = 3000;

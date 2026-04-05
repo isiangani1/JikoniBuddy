@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import { sellers } from "@/data/sellers";
 import {
   CheckoutDraft,
@@ -21,12 +22,11 @@ export default function BuyerCheckoutPage() {
   const [cartVersion, setCartVersion] = useState(0);
   const buyerState = useMemo(() => loadBuyerState(), [cartVersion]);
   const [mpesaPhone, setMpesaPhone] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      router.replace("/login");
-    }
+    const loggedIn = sessionStorage.getItem("jb_auth") === "true";
+    setIsLoggedIn(loggedIn);
   }, [router]);
 
   const seller = useMemo(() => {
@@ -44,6 +44,9 @@ export default function BuyerCheckoutPage() {
   const total = subtotal + deliveryQuote.fee;
 
   const [draft, setDraft] = useState<CheckoutDraft>(buyerState.checkout);
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     setDraft(buyerState.checkout);
@@ -55,47 +58,145 @@ export default function BuyerCheckoutPage() {
     }
   }, [buyerState.cart.length, router]);
 
+  useEffect(() => {
+    if (buyerState.addresses.length > 0) return;
+    if (draft.deliveryLocation.trim()) return;
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const label = `Current location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`;
+        setMapCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        handleChange({ deliveryLocation: label });
+      },
+      () => undefined
+    );
+  }, [buyerState.addresses.length, draft.deliveryLocation]);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported on this device.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const label = `Current location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`;
+        setMapCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        handleChange({ deliveryLocation: label });
+      },
+      () => alert("Unable to fetch current location.")
+    );
+  };
+
+  const MapPicker = () => {
+    useMapEvents({
+      click: (event) => {
+        const { lat, lng } = event.latlng;
+        setMapCoords({ lat, lng });
+        handleChange({ deliveryLocation: `Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+      }
+    });
+    return mapCoords ? <Marker position={[mapCoords.lat, mapCoords.lng]} /> : null;
+  };
+
   const handleChange = (update: Partial<CheckoutDraft>) => {
     const next = { ...draft, ...update };
     setDraft(next);
     setCheckoutDraft(update);
   };
 
-  const handlePlaceOrder = () => {
-    if (!buyerState.sellerId || !buyerState.cart.length) return;
+  const handlePlaceOrder = async () => {
+    if (!buyerState.cart.length) return;
+
+    const isScheduled =
+      draft.scheduledDate.trim().length > 0 && draft.timeWindow.trim().length > 0;
+
+    if (isScheduled && !isLoggedIn) {
+      alert("Please log in to schedule a delivery or service.");
+      router.push("/login");
+      return;
+    }
+
+    if (isScheduled && draft.paymentMethod !== "mpesa") {
+      alert("Scheduled deliveries require at least a 45% advance payment via M-Pesa.");
+      return;
+    }
+
+    if (!isLoggedIn && draft.paymentMethod !== "cash") {
+      alert("Please log in to pay with M-Pesa. You can still choose Pay on delivery.");
+      router.push("/login");
+      return;
+    }
+
+    if (draft.paymentMethod === "mpesa" && !mpesaPhone.trim()) {
+      alert("Please enter an M-Pesa phone number.");
+      return;
+    }
 
     if (!draft.deliveryLocation.trim()) {
       alert("Please enter a delivery location.");
       return;
     }
 
-    if (!draft.scheduledDate.trim() || !draft.timeWindow.trim()) {
+    if (isScheduled && (!draft.scheduledDate.trim() || !draft.timeWindow.trim())) {
       alert("Please select a scheduled date and time window.");
       return;
     }
 
     const orderId = `ord-${Date.now()}`;
+    const buyerId =
+      sessionStorage.getItem("jb_user_id") ||
+      sessionStorage.getItem("jb_buyer_id") ||
+      localStorage.getItem("jb_session");
 
-    const created = placeOrder({
-      id: orderId,
-      sellerId: buyerState.sellerId,
-      items: buyerState.cart,
-      subtotal,
-      delivery: deliveryQuote,
-      total,
-      checkout: draft,
-      payment: {
-        method: draft.paymentMethod,
-        status: "not_started",
-        phoneNumber: draft.paymentMethod === "mpesa" ? mpesaPhone : undefined
-      },
-      status: "placed"
-    });
+    setIsSubmittingPayment(true);
+    try {
+      const paymentRes = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: buyerId,
+          amount: total,
+          method: draft.paymentMethod,
+          phone: draft.paymentMethod === "mpesa" ? mpesaPhone : undefined,
+          orderId
+        })
+      });
 
-    clearBuyerCart();
-    setCartVersion((v) => v + 1);
+      if (!paymentRes.ok) {
+        const err = await paymentRes.json().catch(() => ({}));
+        throw new Error(err?.error ?? "Failed to create payment record.");
+      }
 
-    router.push(`/buyer/orders/${created.id}`);
+      const paymentPayload = await paymentRes.json();
+
+      const firstSellerId = buyerState.cart[0]?.sellerId || "unknown";
+      const created = placeOrder({
+        id: orderId,
+        sellerId: firstSellerId,
+        items: buyerState.cart,
+        subtotal,
+        delivery: deliveryQuote,
+        total,
+        checkout: draft,
+        payment: {
+          method: draft.paymentMethod,
+          status: "pending",
+          receiptId: paymentPayload?.paymentId,
+          phoneNumber: draft.paymentMethod === "mpesa" ? mpesaPhone : undefined
+        },
+        status: "placed"
+      });
+
+      clearBuyerCart();
+      setCartVersion((v) => v + 1);
+
+      router.push(`/buyer/orders/${created.id}`);
+    } catch (error) {
+      console.error(error);
+      alert("Could not initiate payment. Please try again.");
+    } finally {
+      setIsSubmittingPayment(false);
+    }
   };
 
   return (
@@ -129,9 +230,12 @@ export default function BuyerCheckoutPage() {
               ) : (
                 <ul className="flex flex-col gap-3 m-0 p-0 mb-4 border-b border-white/10 pb-4">
                   {buyerState.cart.map((item) => (
-                    <li key={item.id} className="flex justify-between items-center">
-                      <div className="text-white font-medium">
-                        {item.name} <span className="text-white/50 text-sm ml-1">× {item.qty}</span>
+                    <li key={item.id} className="flex justify-between items-center py-1">
+                      <div className="flex flex-col">
+                        <div className="text-white font-medium">
+                          {item.name} <span className="text-white/50 text-sm ml-1">× {item.qty}</span>
+                        </div>
+                        <span className="text-[10px] text-white/30 uppercase tracking-tighter font-bold uppercase">{item.sellerName}</span>
                       </div>
                       <div className="flex items-center gap-2 bg-black/30 rounded-lg p-1 border border-white/5">
                         <button
@@ -154,6 +258,17 @@ export default function BuyerCheckoutPage() {
                         >
                           +
                         </button>
+                        <button
+                          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors ml-1"
+                          type="button"
+                          onClick={() => {
+                            updateCartQty(item.id, 0);
+                            setCartVersion((v) => v + 1);
+                          }}
+                          title="Remove item"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
                       </div>
                     </li>
                   ))}
@@ -174,11 +289,12 @@ export default function BuyerCheckoutPage() {
                 </div>
               </div>
               <button 
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 active:scale-95" 
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 active:scale-95 disabled:opacity-60" 
                 type="button" 
                 onClick={handlePlaceOrder}
+                disabled={isSubmittingPayment}
               >
-                Place order
+                {isSubmittingPayment ? "Processing payment..." : "Place order"}
               </button>
             </div>
           </div>
@@ -224,6 +340,34 @@ export default function BuyerCheckoutPage() {
                   placeholder="Enter delivery location"
                   className="w-full p-3.5 bg-black/30 border border-white/10 text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium"
                 />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-white/80 text-sm font-semibold hover:bg-white/10 transition-colors"
+                  >
+                    Use my location
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMapOpen((value) => !value)}
+                    className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-white/80 text-sm font-semibold hover:bg-white/10 transition-colors"
+                  >
+                    {isMapOpen ? "Hide map" : "Pick on map"}
+                  </button>
+                </div>
+                {isMapOpen ? (
+                  <div className="mt-2 overflow-hidden rounded-2xl border border-white/10">
+                    <MapContainer
+                      center={[mapCoords?.lat ?? -1.286389, mapCoords?.lng ?? 36.817223]}
+                      zoom={13}
+                      style={{ height: "240px", width: "100%" }}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <MapPicker />
+                    </MapContainer>
+                  </div>
+                ) : null}
               </label>
               
               <div className="grid grid-cols-2 gap-4">
@@ -293,13 +437,92 @@ export default function BuyerCheckoutPage() {
                     className="w-full p-3.5 bg-green-900/20 border border-green-500/30 text-[15px] text-white rounded-xl focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400 transition-all font-medium placeholder:text-white/30"
                   />
                 </label>
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                  <div className="flex flex-col gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-white/60">
+                      Delivery location for pay on delivery
+                    </span>
+                    {buyerState.addresses.length ? (
+                      <select
+                        value={draft.deliveryAddressLabel}
+                        onChange={(event) => {
+                          const label = event.target.value;
+                          const address = buyerState.addresses.find((item: SavedAddress) => item.label === label);
+                          handleChange({
+                            deliveryAddressLabel: label,
+                            deliveryLocation: address ? address.location : draft.deliveryLocation
+                          });
+                        }}
+                        className="w-full p-3.5 bg-black/30 border border-white/10 text-[15px] text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                      >
+                        <option value="">Select saved location</option>
+                        {buyerState.addresses.map((address: SavedAddress) => (
+                          <option key={address.id} value={address.label}>
+                            {address.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    <input
+                      value={draft.deliveryLocation}
+                      onChange={(event) => handleChange({ deliveryLocation: event.target.value })}
+                      placeholder="Enter delivery location"
+                      className="w-full p-3.5 bg-black/30 border border-white/10 text-[15px] text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                    />
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={handleUseCurrentLocation}
+                        className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-white/80 text-sm font-semibold hover:bg-white/10 transition-colors"
+                      >
+                        Use my location
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMapOpen((value) => !value)}
+                        className="px-4 py-2 rounded-xl border border-white/15 bg-white/5 text-white/80 text-sm font-semibold hover:bg-white/10 transition-colors"
+                      >
+                        {isMapOpen ? "Hide map" : "Pick on map"}
+                      </button>
+                    </div>
+                    {isMapOpen ? (
+                      <div className="mt-2 overflow-hidden rounded-2xl border border-white/10">
+                        <MapContainer
+                          center={[mapCoords?.lat ?? -1.286389, mapCoords?.lng ?? 36.817223]}
+                          zoom={13}
+                          style={{ height: "220px", width: "100%" }}
+                        >
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          <MapPicker />
+                        </MapContainer>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {draft.scheduledDate.trim() && draft.timeWindow.trim() ? (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                  Scheduled orders require at least a 45% advance payment. M-Pesa
+                  will cover this deposit at checkout.
+                </div>
+              ) : null}
+
+              {!isLoggedIn && draft.paymentMethod !== "cash" ? (
+                <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+                  <Link href="/login" className="font-semibold underline decoration-amber-300 underline-offset-4 hover:text-white">
+                    Log in
+                  </Link>{" "}
+                  to complete M-Pesa checkout. Pay on delivery works without login.
+                </div>
               ) : null}
 
               <div className="mt-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 flex flex-col gap-2">
-                <span className="text-purple-300 font-bold text-sm">Testing Mode</span>
+                <span className="text-purple-300 font-bold text-sm">Payments</span>
                 <p className="text-purple-200/70 text-sm m-0 leading-relaxed">
-                  Payment is currently stubbed. This screen is ready for API wiring to
-                  M-Pesa and pay-on-delivery records.
+                  We record M-Pesa and pay-on-delivery selections here. M-Pesa STK
+                  Push will fire once Daraja credentials are configured.
                 </p>
               </div>
             </div>

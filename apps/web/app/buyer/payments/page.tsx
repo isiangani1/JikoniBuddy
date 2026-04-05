@@ -1,20 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadOrders } from "@/data/buyerStorage";
 
 export default function BuyerPaymentsPage() {
-  const router = useRouter();
   const [version, setVersion] = useState(0);
-
-  useEffect(() => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      router.replace("/login");
-    }
-  }, [router]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setVersion((v) => v + 1), 3000);

@@ -12,7 +12,6 @@ export default function BuyerReceiptPage({
   params: { id: string };
 }) {
   const router = useRouter();
-
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     if (!isLoggedIn) {

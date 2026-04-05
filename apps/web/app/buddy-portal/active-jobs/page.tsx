@@ -77,7 +77,9 @@ export default function BuddyPortalActiveJobsPage() {
           orderId: selectedJob.id,
           buddyId: getBuddyId(),
           lat: position.coords.latitude,
-          lng: position.coords.longitude
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: new Date().toISOString()
         });
       },
       () => null,

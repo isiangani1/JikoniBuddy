@@ -39,6 +39,11 @@ export const services: Record<string, ServiceConfig> = {
     baseUrl: env.PAYMENT_SERVICE_URL ?? "http://127.0.0.1:4008",
     healthPath: env.PAYMENT_SERVICE_HEALTH ?? defaultHealthPath
   },
+  payout: {
+    key: "payout",
+    baseUrl: env.PAYOUT_SERVICE_URL ?? "http://127.0.0.1:4016",
+    healthPath: env.PAYOUT_SERVICE_HEALTH ?? defaultHealthPath
+  },
   buddy: {
     key: "buddy",
     baseUrl: env.BUDDY_SERVICE_URL ?? "http://127.0.0.1:4005",

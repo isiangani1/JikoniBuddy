@@ -24,17 +24,17 @@ export default function BuyerAccountPage() {
   const [addressLocation, setAddressLocation] = useState("");
 
   useEffect(() => {
+    setName(buyerState.profile.name);
+    setPhone(buyerState.profile.phone);
+    setEmail(buyerState.profile.email);
+  }, [buyerState.profile.email, buyerState.profile.name, buyerState.profile.phone]);
+
+  useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     if (!isLoggedIn) {
       router.replace("/login");
     }
   }, [router]);
-
-  useEffect(() => {
-    setName(buyerState.profile.name);
-    setPhone(buyerState.profile.phone);
-    setEmail(buyerState.profile.email);
-  }, [buyerState.profile.email, buyerState.profile.name, buyerState.profile.phone]);
 
   const handleSaveProfile = () => {
     updateBuyerProfile({ name, phone, email });

@@ -142,8 +142,13 @@ export class GatewayController {
       });
       return;
     }
-    const allowsApiKey = serviceKey === "admin";
-    if (allowsApiKey && hasValidApiKey(req.headers as Record<string, unknown>)) {
+    const path = req.originalUrl?.split("?")[0] ?? req.url;
+    const isPayoutAdminPath =
+      serviceKey === "payout" && path.includes("/admin");
+    const allowsApiKey = serviceKey === "admin" || isPayoutAdminPath;
+    const apiKeyValid =
+      allowsApiKey && hasValidApiKey(req.headers as Record<string, unknown>);
+    if (apiKeyValid) {
       req.headers["x-api-key-auth"] = "true";
     } else if (!isPublicRoute(req)) {
       const authContext = getAuthContext(req.headers.authorization);

@@ -45,6 +45,8 @@ export default function SellerDashboard() {
       { label: "Today", value: 3, color: "#FF60A0" },
     ],
     avgPrepTime: 22,
+    walletBalance: rawMetrics?.walletBalance ?? 0,
+    walletPending: rawMetrics?.walletPending ?? 0,
     avgOrderCycleMins: rawMetrics?.avgOrderCycleMins ?? 24,
     avgBuddyMatchMins: rawMetrics?.avgBuddyMatchMins ?? 6,
     recentCompletedOrders: rawMetrics?.recentCompletedOrders ?? 12,
@@ -97,7 +99,7 @@ export default function SellerDashboard() {
             View Menu
           </button>
           <button
-            className={`px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-bold transition-all shadow-lg text-white ${isOverloaded ? 'bg-[#ff4e50] hover:bg-[#ff3b3d] shadow-[#ff4e50]/20' : 'bg-purple-600 hover:bg-purple-500 shadow-purple-500/20'}`}
+            className={`px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-bold transition-all shadow-lg ${isOverloaded ? 'bg-[#ff4e50] hover:bg-[#ff3b3d] shadow-[#ff4e50]/20 text-white' : 'bg-[#2dd4bf] hover:opacity-90 shadow-[#2dd4bf]/20 text-[#0d0a14]'}`}
             onClick={handleRequestHelper}
             disabled={isRequestingHelper}
           >
@@ -117,7 +119,21 @@ export default function SellerDashboard() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
           Operational Overview
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="p-5 sm:p-6 rounded-[20px] transition-all hover:-translate-y-1 bg-white/5 border border-white/10">
+            <p className="text-xs font-bold tracking-widest uppercase text-white/60 m-0">AVAILABLE BALANCE</p>
+            <h2 className="text-4xl sm:text-[2.5rem] font-bold text-white mt-2 mb-2">
+              KES {metrics.walletBalance.toLocaleString()}
+            </h2>
+            <p className="text-sm font-medium text-[#2dd4bf] m-0">Ready to payout</p>
+          </div>
+          <div className="p-5 sm:p-6 rounded-[20px] transition-all hover:-translate-y-1 bg-white/5 border border-white/10">
+            <p className="text-xs font-bold tracking-widest uppercase text-white/60 m-0">PENDING BALANCE</p>
+            <h2 className="text-4xl sm:text-[2.5rem] font-bold text-white mt-2 mb-2">
+              KES {metrics.walletPending.toLocaleString()}
+            </h2>
+            <p className="text-sm font-medium text-white/60 m-0">Clears after settlement</p>
+          </div>
           <div className="p-5 sm:p-6 rounded-[20px] transition-all hover:-translate-y-1 bg-white/5 border border-white/10">
             <p className="text-xs font-bold tracking-widest uppercase text-white/60 m-0">ORDERS TODAY</p>
             <h2 className="text-4xl sm:text-[2.5rem] font-bold text-white mt-2 mb-2">{metrics.todaysOrders}</h2>

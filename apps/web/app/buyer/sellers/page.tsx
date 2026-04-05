@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { sellers } from "@/data/sellers";
 
 type SortKey = "rating" | "eta" | "price";
@@ -22,18 +21,10 @@ function parseEtaMinutes(eta: string) {
 }
 
 export default function BuyerSellerListingPage() {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState<"all" | "available_now">("all");
   const [sortKey, setSortKey] = useState<SortKey>("rating");
   const [showMap, setShowMap] = useState(false);
-
-  useEffect(() => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      router.replace("/login");
-    }
-  }, [router]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

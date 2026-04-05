@@ -52,22 +52,10 @@ export default function BuyerSellerDetailPage({
   );
 
   const handleCheckout = () => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      alert("Please log in to continue to checkout.");
-      router.push("/login");
-      return;
-    }
     router.push("/buyer/checkout");
   };
 
   const handlePreOrderMessage = () => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      alert("Please log in to message this seller.");
-      router.push("/login");
-      return;
-    }
     alert(
       "Pre-order messaging will be available once an order is placed. For now, place an order to unlock order chat."
     );

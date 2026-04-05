@@ -13,3 +13,6 @@ export const fetchBuddyJson = async <T>(path: string): Promise<T> => {
   }
   return (await response.json()) as T;
 };
+export const getUserProfile = async (id: string): Promise<any> => {
+  return fetchBuddyJson(`/users/${id}`);
+};

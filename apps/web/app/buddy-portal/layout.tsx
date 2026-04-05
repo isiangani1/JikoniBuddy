@@ -39,6 +39,9 @@ export default function BuddyPortalLayout({
   const [showDemandMap, setShowDemandMap] = useState(false);
   const prevOnlineRef = useRef(isOnline);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [liveNotifications, setLiveNotifications] = useState<
+    { id?: string; title: string; message: string; createdAt?: string }[]
+  >([]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [userName, setUserName] = useState("Buddy");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -141,6 +144,34 @@ export default function BuddyPortalLayout({
     };
   }, [router]);
 
+  useEffect(() => {
+    const helperId = sessionStorage.getItem("jb_helper_id");
+    if (!helperId) return;
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket: Socket = io(`${baseUrl}/ws/notification`, {
+      query: { userId: helperId },
+      transports: ["websocket"]
+    });
+
+    socket.on("notification", (payload: any) => {
+      setLiveNotifications((prev) => [
+        {
+          id: payload?.id,
+          title: payload?.title ?? "Notification",
+          message: payload?.message ?? "",
+          createdAt: payload?.createdAt
+        },
+        ...prev
+      ].slice(0, 6));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
 
   const initials = useMemo(() => {
     const parts = userName.trim().split(/\s+/).filter(Boolean);
@@ -236,7 +267,9 @@ export default function BuddyPortalLayout({
             >
               <span className="hidden md:inline text-sm">Notifications</span> 
               <span className="md:hidden">🔔</span>
-              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-pink-500 text-white text-[10px] font-bold px-1 absolute -top-1 -right-1 md:static">3</span>
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-pink-500 text-white text-[10px] font-bold px-1 absolute -top-1 -right-1 md:static">
+                {liveNotifications.length || 3}
+              </span>
             </button>
             <Link className="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-white/10 bg-[#0f081a]/60 text-white font-medium hover:bg-white/10 transition-colors" href="/buddy-portal/messages">
               <span className="hidden md:inline text-sm">Messages</span>
@@ -283,30 +316,46 @@ export default function BuddyPortalLayout({
           {notificationsOpen ? (
             <div className="absolute right-4 top-16 w-[min(320px,90vw)] bg-[#0e0716]/98 backdrop-blur-xl border border-white/12 rounded-2xl p-4 flex flex-col gap-3 shadow-[0_24px_60px_rgba(20,6,40,0.35)] z-50">
               <h4 className="m-0 text-base font-semibold">Notifications</h4>
-              <Link
-                href="/buddy-portal/dashboard"
-                className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
-                onClick={() => setNotificationsOpen(false)}
-              >
-                <strong className="block text-sm text-white">New cooking job</strong>
-                <p className="m-0 mt-1 text-xs text-white/60">Kilimani · 2h · KES 1,500</p>
-              </Link>
-              <Link
-                href="/buddy-portal/earnings"
-                className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
-                onClick={() => setNotificationsOpen(false)}
-              >
-                <strong className="block text-sm text-white">Payment received</strong>
-                <p className="m-0 mt-1 text-xs text-white/60">KES 800 · 15 mins ago</p>
-              </Link>
-              <Link
-                href="/buddy-portal/job"
-                className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
-                onClick={() => setNotificationsOpen(false)}
-              >
-                <strong className="block text-sm text-white">Job reminder</strong>
-                <p className="m-0 mt-1 text-xs text-white/60">Packaging shift at 2PM</p>
-              </Link>
+              {liveNotifications.length ? (
+                liveNotifications.map((note) => (
+                  <Link
+                    key={note.id ?? note.createdAt ?? note.title}
+                    href="/buddy-portal/earnings"
+                    className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    <strong className="block text-sm text-white">{note.title}</strong>
+                    <p className="m-0 mt-1 text-xs text-white/60">{note.message}</p>
+                  </Link>
+                ))
+              ) : (
+                <>
+                  <Link
+                    href="/buddy-portal/dashboard"
+                    className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    <strong className="block text-sm text-white">New cooking job</strong>
+                    <p className="m-0 mt-1 text-xs text-white/60">Kilimani · 2h · KES 1,500</p>
+                  </Link>
+                  <Link
+                    href="/buddy-portal/earnings"
+                    className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    <strong className="block text-sm text-white">Payment received</strong>
+                    <p className="m-0 mt-1 text-xs text-white/60">KES 800 · 15 mins ago</p>
+                  </Link>
+                  <Link
+                    href="/buddy-portal/job"
+                    className="block bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 hover:border-purple-500/50 hover:-translate-y-0.5 transition-all"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    <strong className="block text-sm text-white">Job reminder</strong>
+                    <p className="m-0 mt-1 text-xs text-white/60">Packaging shift at 2PM</p>
+                  </Link>
+                </>
+              )}
             </div>
           ) : null}
         </header>

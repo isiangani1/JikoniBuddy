@@ -1,7 +1,7 @@
 const path = require("node:path");
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
-const { PrismaClient } = require("../../../prisma/generated/client");
+const { PrismaClient } = require("@prisma/client");
 
 dotenv.config({ path: path.resolve(process.cwd(), "..", "..", ".env") });
 if (process.env.USE_DIRECT_DATABASE_URL === "true" && process.env.DIRECT_DATABASE_URL) {
@@ -42,6 +42,50 @@ const seed = async () => {
       }
     });
   }
+
+  const sellerEmail = "seller@jikoni.buddy";
+  const sellerPhone = "254700000701";
+  let sellerUser = await prisma.user.findUnique({ where: { email: sellerEmail } });
+  if (!sellerUser) {
+    sellerUser = await prisma.user.create({
+      data: {
+        email: sellerEmail,
+        phone: sellerPhone,
+        passwordHash,
+        role: "seller",
+        status: "active",
+        displayName: "Kilimani Kitchen",
+        rating: 4.7,
+        lat: -1.2921,
+        lng: 36.7872,
+        locationLabel: "Kilimani"
+      }
+    });
+  }
+
+  await prisma.wallet.upsert({
+    where: { userId_type: { userId: user.id, type: "buddy" } },
+    update: {},
+    create: {
+      userId: user.id,
+      type: "buddy",
+      balance: 3200,
+      pendingBalance: 1400,
+      currency: "KES"
+    }
+  });
+
+  await prisma.wallet.upsert({
+    where: { userId_type: { userId: sellerUser.id, type: "seller" } },
+    update: {},
+    create: {
+      userId: sellerUser.id,
+      type: "seller",
+      balance: 15200,
+      pendingBalance: 3200,
+      currency: "KES"
+    }
+  });
 
   const existingSkills = await prisma.userSkill.findMany({
     where: { userId: user.id }

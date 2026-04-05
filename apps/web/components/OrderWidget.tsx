@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function OrderWidget() {
-  const router = useRouter();
   const [location, setLocation] = useState("");
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
@@ -122,7 +120,11 @@ export default function OrderWidget() {
         <button
           className="mt-6 w-full rounded-full bg-[#2dd4bf] px-4 py-3 text-sm font-semibold text-[#0d0a14] hover:opacity-90"
           type="button"
-          onClick={() => router.push("/buyer")}
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.location.assign("/buyer");
+            }
+          }}
         >
           Find Food
         </button>

@@ -3,6 +3,8 @@ export type CartItem = {
   name: string;
   price: number;
   qty: number;
+  sellerId: string;
+  sellerName: string;
 };
 
 export type DeliveryQuote = {
@@ -148,18 +150,7 @@ const defaultState: StoredState = {
     phone: "",
     email: ""
   },
-  addresses: [
-    {
-      id: "home",
-      label: "Home",
-      location: "Kilimani, Nairobi"
-    },
-    {
-      id: "work",
-      label: "Work",
-      location: "Westlands, Nairobi"
-    }
-  ]
+  addresses: []
 };
 
 export function loadBuyerState(): StoredState {
@@ -181,6 +172,7 @@ export function loadBuyerState(): StoredState {
 export function saveBuyerState(state: StoredState) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.dispatchEvent(new Event("cart-updated"));
 }
 
 export function clearBuyerCart() {
@@ -193,17 +185,15 @@ export function setBuyerSeller(sellerId: string) {
   saveBuyerState({ ...state, sellerId });
 }
 
-export function addCartItem(sellerId: string, item: { id: string; name: string; price: number }) {
+export function addCartItem(sellerId: string, item: { id: string; name: string; price: number }, sellerName: string = "Jikoni Seller") {
   const state = loadBuyerState();
-  const nextSellerId = state.sellerId ?? sellerId;
-
-  const cart = nextSellerId !== sellerId ? [] : state.cart;
+  const cart = state.cart;
   const existing = cart.find((entry) => entry.id === item.id);
   const nextCart = existing
     ? cart.map((entry) => (entry.id === item.id ? { ...entry, qty: entry.qty + 1 } : entry))
-    : [...cart, { ...item, qty: 1 }];
+    : [...cart, { ...item, qty: 1, sellerId, sellerName }];
 
-  saveBuyerState({ ...state, sellerId, cart: nextCart });
+  saveBuyerState({ ...state, cart: nextCart });
 }
 
 export function updateCartQty(itemId: string, qty: number) {

@@ -38,15 +38,16 @@ export default function BuddyPayoutLeaflet({
     if (!amount || !mpesaNumber) return alert("Enter amount and M-Pesa number.");
     if (!buddyId) return alert("Buddy profile not found. Please re-login.");
     try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
-      const res = await fetch(`${baseUrl}/api/buddy/users/${buddyId}/payouts`, {
+      const res = await fetch(`/api/payout/withdraw`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: buddyId,
+          walletType: "buddy",
           amount: Number(amount),
           mpesaNumber,
-          note
+          note,
+          instant: true
         })
       });
       if (!res.ok) throw new Error("Payout request failed");

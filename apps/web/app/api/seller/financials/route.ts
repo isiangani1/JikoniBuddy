@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+const baseUrl =
+  process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,33 +9,25 @@ export async function GET(request: Request) {
   if (!sellerId) return NextResponse.json({ error: "Missing sellerId" }, { status: 400 });
 
   try {
-    // 1. Fetch payments linked to this seller's orders
-    const payments = await (prisma as any).payment.findMany({
-      where: {
-        order: {
-          sellerId
-        }
-      },
-      include: {
-        order: {
-          include: {
-            buyer: true
-          }
-        }
-      },
-      orderBy: { createdAt: "desc" }
+    const walletRes = await fetch(
+      `${baseUrl}/api/payout/wallet?userId=${sellerId}&type=seller`
+    );
+    const txRes = await fetch(
+      `${baseUrl}/api/payout/transactions?userId=${sellerId}&type=seller`
+    );
+
+    if (!walletRes.ok || !txRes.ok) {
+      return NextResponse.json({ error: "Failed to load payouts" }, { status: 502 });
+    }
+
+    const wallet = await walletRes.json();
+    const transactions = await txRes.json();
+    return NextResponse.json({
+      wallet,
+      transactions,
+      totalBalance: wallet?.balance ?? 0,
+      pendingBalance: wallet?.pendingBalance ?? 0
     });
-
-    // 2. Fetch Earnings records
-    const earnings = await (prisma as any).earning.findMany({
-      where: { userId: sellerId },
-      orderBy: { createdAt: "desc" }
-    });
-
-    const totalBalance = earnings.reduce((acc: number, e: any) => e.status === "available" ? acc + e.amount : acc, 0);
-    const pendingBalance = earnings.reduce((acc: number, e: any) => e.status === "pending" ? acc + e.amount : acc, 0);
-
-    return NextResponse.json({ payments, earnings, totalBalance, pendingBalance });
   } catch (error) {
     console.error("Failed to fetch financials:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -47,16 +38,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { sellerId, amount } = body;
-
-    // In a real app, logic would:
-    // 1. Verify balance
-    // 2. Queue M-Pesa B2C transaction
-    // 3. Update Earning records
-    
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
-
-    return NextResponse.json({ success: true, message: "Payout request queued for M-Pesa processing." });
+    const res = await fetch(`${baseUrl}/api/payout/withdraw`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
     return NextResponse.json({ error: "Payout failed" }, { status: 500 });
   }

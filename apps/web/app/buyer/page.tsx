@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sellers } from "@/data/sellers";
-import { loadBuyerState, setCheckoutDraft } from "@/data/buyerStorage";
+import { loadBuyerState, setCheckoutDraft, addCartItem } from "@/data/buyerStorage";
 
 export default function BuyerPage() {
   const router = useRouter();
@@ -73,11 +73,8 @@ export default function BuyerPage() {
   const [homeSections, setHomeSections] = useState<HomeSection[]>([]);
 
   useEffect(() => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      router.replace("/login");
-    }
-  }, [router]);
+    setCheckoutDraft({ deliveryLocation });
+  }, [deliveryLocation]);
 
   useEffect(() => {
     const state = loadBuyerState();
@@ -363,7 +360,17 @@ export default function BuyerPage() {
                     className="absolute top-3 right-3 p-2 rounded-full bg-purple-600/90 backdrop-blur hover:bg-purple-500 text-white shadow-lg opacity-0 transform translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300" 
                     onClick={(e) => {
                       e.preventDefault();
-                      // Prevent navigation and add to cart
+                      if ("sellerId" in product) {
+                        addCartItem(
+                          product.sellerId, 
+                          {
+                            id: product.id,
+                            name: product.name,
+                            price: product.price
+                          },
+                          "sellerName" in product ? product.sellerName : "Jikoni Seller"
+                        );
+                      }
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

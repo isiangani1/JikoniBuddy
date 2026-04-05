@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import NotificationBanner from "@/components/NotificationBanner";
 
 export default function SiteHeader() {
-  const router = useRouter();
-  const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [auth, setAuth] = useState<{ isLoggedIn: boolean; role: string; userName: string; initials: string }>(() => ({
     isLoggedIn: false,
     role: "buyer",
@@ -17,7 +15,8 @@ export default function SiteHeader() {
 
   useEffect(() => {
     try {
-      if (pathname === "/") {
+      const currentPath = typeof window !== "undefined" ? window.location.pathname : "/";
+      if (currentPath === "/") {
         setAuth({ isLoggedIn: false, role: "buyer", userName: "Account", initials: "U" });
         return;
       }
@@ -39,7 +38,7 @@ export default function SiteHeader() {
     } catch {
       setAuth({ isLoggedIn: false, role: "buyer", userName: "Account", initials: "U" });
     }
-  }, [pathname]);
+  }, []);
 
   const handleLogout = () => {
     sessionStorage.removeItem("jb_auth");
@@ -50,7 +49,9 @@ export default function SiteHeader() {
     localStorage.removeItem("jb_role");
     localStorage.removeItem("jb_user_name");
     localStorage.removeItem("jb_helper_id");
-    router.push("/");
+    if (typeof window !== "undefined") {
+      window.location.assign("/");
+    }
   };
 
   return (
@@ -98,8 +99,11 @@ export default function SiteHeader() {
                 </Link>
               </div>
             </div>
-            <Link className="transition hover:text-white" href="/seller">
+            <Link className="transition hover:text-white" href="/start-selling">
               Become a Seller
+            </Link>
+            <Link className="transition hover:text-white" href="/start-buddy">
+              Become a Buddy
             </Link>
             <div className="group relative">
               <button className="transition hover:text-white" type="button">
@@ -153,18 +157,82 @@ export default function SiteHeader() {
               </div>
             </div>
           ) : (
-            <>
+            <div className="hidden items-center gap-3 sm:flex">
               <Link className="text-sm text-white/70 transition hover:text-white" href="/login">
                 Login
               </Link>
-              <Link className="rounded-full bg-[#2dd4bf] px-4 py-2 text-sm font-semibold text-[#0d0a14] transition hover:opacity-90" href="/register">
+              <Link className="rounded-full bg-[#2dd4bf] px-4 py-2 text-sm font-semibold text-[#0d0a14] transition hover:opacity-90" href="/register?role=buyer">
                 Sign Up
               </Link>
-            </>
+            </div>
           )}
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition hover:text-white md:hidden"
+            aria-label="Open menu"
+            onClick={() => setIsMenuOpen(true)}
+          >
+            <span className="sr-only">Open menu</span>
+            <div className="flex flex-col gap-1">
+              <span className="h-0.5 w-5 rounded-full bg-white"></span>
+              <span className="h-0.5 w-5 rounded-full bg-white"></span>
+              <span className="h-0.5 w-5 rounded-full bg-white"></span>
+            </div>
+          </button>
           </div>
         </div>
       </header>
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden">
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm border-l border-white/10 bg-[#0f0a18] p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold text-white">Menu</span>
+              <button
+                type="button"
+                className="h-9 w-9 rounded-full border border-white/10 bg-white/5 text-white/70"
+                aria-label="Close menu"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-6 flex flex-col gap-4 text-white/80">
+              <Link className="text-sm font-semibold text-white" href="/" onClick={() => setIsMenuOpen(false)}>
+                Home
+              </Link>
+              <div className="flex flex-col gap-2 text-sm">
+                <span className="text-xs uppercase tracking-[0.2em] text-white/40">Browse</span>
+                <Link href="/meal-prep" className="rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
+                  Meal Prep
+                </Link>
+                <Link href="/office-bites" className="rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
+                  Office Bites
+                </Link>
+                <Link href="/picnic-snacks" className="rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
+                  Picnic Snacks
+                </Link>
+                <Link href="/catering" className="rounded-lg px-3 py-2 hover:bg-white/10" onClick={() => setIsMenuOpen(false)}>
+                  Catering
+                </Link>
+              </div>
+              <Link className="text-sm font-semibold" href="/start-selling" onClick={() => setIsMenuOpen(false)}>
+                Become a Seller
+              </Link>
+              <Link className="text-sm font-semibold" href="/start-buddy" onClick={() => setIsMenuOpen(false)}>
+                Become a Buddy
+              </Link>
+              <div className="mt-4 flex flex-col gap-3">
+                <Link className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white" href="/login" onClick={() => setIsMenuOpen(false)}>
+                  Login
+                </Link>
+                <Link className="rounded-full bg-[#2dd4bf] px-4 py-2 text-sm font-semibold text-[#0d0a14]" href="/register?role=buyer" onClick={() => setIsMenuOpen(false)}>
+                  Sign Up
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

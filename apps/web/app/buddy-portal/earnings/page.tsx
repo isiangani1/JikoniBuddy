@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchBuddyJson, getBuddyId } from "@/lib/buddy-client";
+import { getBuddyId } from "@/lib/buddy-client";
 import BuddyPayoutLeaflet from "@/components/BuddyPayoutLeaflet";
+import PayoutMethodModal from "@/components/PayoutMethodModal";
 
 type EarningStat = {
   label: string;
@@ -127,8 +128,12 @@ export default function BuddyPortalEarningsPage() {
   const [payments, setPayments] = useState<PaymentRow[]>(fallbackPayments);
   const [earnings, setEarnings] = useState<EarningRow[]>([]);
   const [isPayoutOpen, setIsPayoutOpen] = useState(false);
+  const [isMethodOpen, setIsMethodOpen] = useState(false);
   const [buddyName, setBuddyName] = useState("Buddy");
   const [buddyId, setBuddyId] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletPending, setWalletPending] = useState(0);
+  const [lastPayoutAt, setLastPayoutAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -138,25 +143,82 @@ export default function BuddyPortalEarningsPage() {
     const storedBuddyId = getBuddyId();
     setBuddyId(storedBuddyId);
     if (!storedBuddyId) return;
-    fetchBuddyJson<{ stats: EarningStat[]; earnings: EarningRow[] }>(
-      `/users/${storedBuddyId}/earnings`
-    )
-      .then((data) => {
-        if (data?.stats?.length) {
-          setStats(data.stats);
-        }
-        if (data?.earnings?.length) {
-          setEarnings(data.earnings);
-        }
-      })
-      .catch(() => null);
-    fetchBuddyJson<PaymentRow[]>(`/users/${storedBuddyId}/payments`)
-      .then((data) => {
-        if (data?.length) {
-          setPayments(data);
-        }
-      })
-      .catch(() => null);
+
+    const loadWallet = async () => {
+      const [walletRes, txRes] = await Promise.all([
+        fetch(`/api/payout/wallet?userId=${storedBuddyId}&type=buddy`),
+        fetch(`/api/payout/transactions?userId=${storedBuddyId}&type=buddy`)
+      ]);
+      if (!walletRes.ok || !txRes.ok) return;
+      const wallet = await walletRes.json();
+      const transactions = await txRes.json();
+
+      setWalletBalance(wallet?.balance ?? 0);
+      setWalletPending(wallet?.pendingBalance ?? 0);
+
+      const earningTx = transactions.filter((t: any) => t.type === "earning");
+      const payoutTx = transactions.filter((t: any) => t.type === "withdrawal");
+
+      const now = new Date();
+      const isSameDay = (date: Date) =>
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const sumAmount = (items: any[]) =>
+        items.reduce((acc, item) => acc + Number(item.amount ?? 0), 0);
+
+      const todayTotal = sumAmount(
+        earningTx.filter((t: any) => isSameDay(new Date(t.createdAt)))
+      );
+      const weekTotal = sumAmount(
+        earningTx.filter((t: any) => new Date(t.createdAt) >= weekStart)
+      );
+      const monthTotal = sumAmount(
+        earningTx.filter((t: any) => new Date(t.createdAt) >= monthStart)
+      );
+      const total = sumAmount(earningTx);
+
+      setStats([
+        { label: "Today", value: `KES ${todayTotal.toLocaleString()}`, icon: "wallet", trend: [8, 12, 10, 14, 16, 13, 18] },
+        { label: "This Week", value: `KES ${weekTotal.toLocaleString()}`, icon: "trend", trend: [6, 9, 8, 11, 10, 14, 15] },
+        { label: "This Month", value: `KES ${monthTotal.toLocaleString()}`, icon: "calendar", trend: [4, 6, 7, 9, 12, 11, 14] },
+        { label: "Total", value: `KES ${total.toLocaleString()}`, icon: "target", trend: [3, 5, 6, 8, 9, 10, 12] }
+      ]);
+
+      setPayments(
+        payoutTx.map((tx: any) => ({
+          amount: tx.amount,
+          currency: tx.currency ?? "KES",
+          method: "M-Pesa",
+          status: tx.status,
+          createdAt: tx.createdAt,
+          completedAt: null
+        }))
+      );
+      const latestPayout = payoutTx
+        .filter((tx: any) => tx.createdAt)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+      setLastPayoutAt(latestPayout?.createdAt ?? null);
+      setEarnings(
+        earningTx.map((tx: any) => ({
+          amount: tx.amount,
+          currency: tx.currency ?? "KES",
+          source: "order",
+          status: tx.status,
+          createdAt: tx.createdAt,
+          paidAt: null
+        }))
+      );
+    };
+
+    loadWallet().catch(() => null);
   }, []);
 
   const payoutRows = useMemo(() => {
@@ -171,11 +233,42 @@ export default function BuddyPortalEarningsPage() {
     }));
   }, [earnings, payments]);
 
+  const totalEarned = useMemo(
+    () => earnings.reduce((acc, item) => acc + Number(item.amount ?? 0), 0),
+    [earnings]
+  );
+
   return (
     <>
       <main className="flex flex-col gap-8 w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
         
         <section className="flex flex-col gap-4 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60 m-0">Available</p>
+              <p className="text-2xl font-bold text-white m-0 mt-2">
+                KES {walletBalance.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60 m-0">Pending</p>
+              <p className="text-2xl font-bold text-white m-0 mt-2">
+                KES {walletPending.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60 m-0">Total earned</p>
+              <p className="text-2xl font-bold text-white m-0 mt-2">
+                KES {totalEarned.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/60 m-0">Last payout</p>
+              <p className="text-2xl font-bold text-white m-0 mt-2">
+                {lastPayoutAt ? new Date(lastPayoutAt).toLocaleDateString() : "—"}
+              </p>
+            </div>
+          </div>
           <h2 className="text-2xl font-bold text-white m-0">Earnings snapshot</h2>
           <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[600px]">
@@ -220,7 +313,12 @@ export default function BuddyPortalEarningsPage() {
               <button className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-colors shadow-lg shadow-purple-500/20" onClick={() => setIsPayoutOpen(true)}>
                 Request payout
               </button>
-              <button className="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors">Update M-Pesa details</button>
+              <button
+                className="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors"
+                onClick={() => setIsMethodOpen(true)}
+              >
+                Update M-Pesa details
+              </button>
             </div>
           </div>
         </section>
@@ -263,18 +361,44 @@ export default function BuddyPortalEarningsPage() {
         buddyName={buddyName}
         buddyId={buddyId}
         availableBalance={
-          stats?.[0]?.value
-            ? Number(stats[0].value.toString().replace(/[^\d]/g, ""))
-            : 0
+          walletBalance
         }
         onSubmitted={() => {
           if (!buddyId) return;
-          fetchBuddyJson<PaymentRow[]>(`/users/${buddyId}/payments`)
-            .then((data) => {
-              if (data?.length) setPayments(data);
+          fetch(`/api/payout/transactions?userId=${buddyId}&type=buddy`)
+            .then((res) => res.json())
+            .then((transactions) => {
+              const payoutTx = transactions.filter((t: any) => t.type === "withdrawal");
+              const earningTx = transactions.filter((t: any) => t.type === "earning");
+              setPayments(
+                payoutTx.map((tx: any) => ({
+                  amount: tx.amount,
+                  currency: tx.currency ?? "KES",
+                  method: "M-Pesa",
+                  status: tx.status,
+                  createdAt: tx.createdAt,
+                  completedAt: null
+                }))
+              );
+              setEarnings(
+                earningTx.map((tx: any) => ({
+                  amount: tx.amount,
+                  currency: tx.currency ?? "KES",
+                  source: "order",
+                  status: tx.status,
+                  createdAt: tx.createdAt,
+                  paidAt: null
+                }))
+              );
             })
             .catch(() => null);
         }}
+      />
+      <PayoutMethodModal
+        isOpen={isMethodOpen}
+        onClose={() => setIsMethodOpen(false)}
+        userId={buddyId}
+        roleLabel="Buddy"
       />
     </>
   );

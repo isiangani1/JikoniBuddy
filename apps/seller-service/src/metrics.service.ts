@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaClient } from "../../../prisma/generated/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -25,6 +25,9 @@ export class MetricsService {
 
     const revenue = todaysOrders.reduce((sum, order) => sum + order.totalAmount, 0);
     const completedOrders = todaysOrders.filter(o => o.status === "completed").length;
+    const wallet = await prisma.wallet.findFirst({
+      where: { userId: sellerId, type: "seller" }
+    });
 
     const recentCompleted = await prisma.order.findMany({
       where: { sellerId, status: "completed" },
@@ -88,6 +91,8 @@ export class MetricsService {
       todaysOrders: todaysOrders.length,
       revenue,
       completedOrders,
+      walletBalance: wallet?.balance ?? 0,
+      walletPending: wallet?.pendingBalance ?? 0,
       capacityUtilization: Math.min(100, (activeOrders / 20) * 100),
       avgOrderCycleMins,
       avgBuddyMatchMins,

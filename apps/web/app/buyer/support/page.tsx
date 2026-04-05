@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   createSupportTicket,
@@ -10,7 +10,6 @@ import {
 } from "@/data/buyerStorage";
 
 export default function BuyerSupportPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId") ?? "";
 
@@ -21,13 +20,6 @@ export default function BuyerSupportPage() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [evidenceNote, setEvidenceNote] = useState("");
-
-  useEffect(() => {
-    const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
-    if (!isLoggedIn) {
-      router.replace("/login");
-    }
-  }, [router]);
 
   const handleCreate = () => {
     if (!subject.trim() || !description.trim()) {

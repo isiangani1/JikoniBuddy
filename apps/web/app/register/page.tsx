@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import dynamic from "next/dynamic";
@@ -13,6 +13,7 @@ type Role = "buyer" | "seller" | "buddy";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [role, setRole] = useState<Role>("buyer");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +32,17 @@ export default function RegisterPage() {
     { name: "TasteHub Express", note: "Lunch boxes in 45 mins" },
     { name: "Amani Caterers", note: "Events & office trays" }
   ];
+
+  useEffect(() => {
+    const desiredRole = searchParams.get("role");
+    if (
+      desiredRole === "buyer" ||
+      desiredRole === "seller" ||
+      desiredRole === "buddy"
+    ) {
+      setRole(desiredRole);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

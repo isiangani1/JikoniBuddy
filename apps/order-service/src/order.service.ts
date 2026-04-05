@@ -52,10 +52,8 @@ export class OrderService {
     });
 
     if (order.status === 'completed') {
-      this.brokerClient.emit('payment.completed', {
+      this.brokerClient.emit('delivery.confirmed', {
         orderId: order.id,
-        sellerId: order.sellerId,
-        totalAmount: order.totalAmount,
         timestamp: new Date().toISOString()
       });
     }

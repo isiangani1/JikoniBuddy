@@ -7,6 +7,7 @@ export const serviceRoleMatrix: Record<string, Role[]> = {
   admin: ["admin"],
   order: ["buyer", "seller", "admin"],
   payment: ["buyer", "seller", "admin"],
+  payout: ["seller", "buddy", "admin"],
   menu: ["seller", "admin"],
   notification: ["buyer", "seller", "buddy", "admin"],
   delivery: ["seller", "admin"],

@@ -17,6 +17,19 @@ export default {
         "brand-teal": "#2dd4bf",
         "brand-gold": "#F7C948"
       },
+      fontFamily: {
+        sans: ["'Manrope'", "ui-sans-serif", "system-ui", "sans-serif"]
+      },
+      spacing: {
+        "section-y": "4.5rem",
+        "section-x": "1.5rem"
+      },
+      backgroundImage: {
+        "brand-hero":
+          "radial-gradient(circle at top, rgba(74, 19, 138, 0.95) 0%, rgba(36, 7, 61, 0.85) 45%, rgba(18, 2, 31, 1) 100%)",
+        "brand-orb":
+          "radial-gradient(circle, rgba(124, 92, 255, 0.35) 0%, rgba(124, 92, 255, 0) 70%)"
+      },
       boxShadow: {
         "card-glow": "0 12px 30px rgba(0,0,0,0.35)"
       },

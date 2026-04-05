@@ -41,7 +41,7 @@ export class LocationGateway {
   async handleUpdate(
     @ConnectedSocket() client: Socket,
     @MessageBody()
-    body: { orderId: string; buddyId?: string; lat: number; lng: number }
+    body: { orderId: string; buddyId?: string; lat: number; lng: number; accuracy?: number; timestamp?: string }
   ) {
     if (!body?.orderId) return;
     const payload = {
@@ -49,7 +49,8 @@ export class LocationGateway {
       buddyId: body.buddyId,
       lat: body.lat,
       lng: body.lng,
-      timestamp: new Date().toISOString()
+      accuracy: body.accuracy,
+      timestamp: body.timestamp ?? new Date().toISOString()
     };
     await this.store.setLocation(payload);
     this.server.to(`order:${body.orderId}`).emit("tracking:update", payload);

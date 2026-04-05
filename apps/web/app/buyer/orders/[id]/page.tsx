@@ -8,6 +8,7 @@ import { io } from "socket.io-client";
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { GlassPanel } from "@/components/ui/GlassPanel";
 import {
   BuyerOrderStatus,
   getOrder,
@@ -50,6 +51,10 @@ export default function BuyerOrderTrackingPage({
   const router = useRouter();
   const [version, setVersion] = useState(0);
   const [trackingData, setTrackingData] = useState<any>(null);
+  const [driverPosition, setDriverPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [targetPosition, setTargetPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
+  const [isTrackingStale, setIsTrackingStale] = useState(false);
 
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
@@ -84,7 +89,15 @@ export default function BuyerOrderTrackingPage({
 
     fetch(`/api/seller/orders/${order.id}/tracking`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setTrackingData(data))
+      .then((data) => {
+        setTrackingData(data);
+        if (data?.driver?.lat && data?.driver?.lng) {
+          const initial = { lat: data.driver.lat, lng: data.driver.lng };
+          setDriverPosition(initial);
+          setTargetPosition(initial);
+          setLastUpdateAt(Date.now());
+        }
+      })
       .catch(() => null);
 
     const socketUrl =
@@ -97,12 +110,43 @@ export default function BuyerOrderTrackingPage({
         driver: { lat: payload.lat, lng: payload.lng },
         status: prev?.status ?? order.status
       }));
+      setTargetPosition({ lat: payload.lat, lng: payload.lng });
+      setLastUpdateAt(Date.now());
     });
     return () => {
       socket.emit("tracking:leave", { orderId: order.id });
       socket.disconnect();
     };
   }, [order]);
+
+  useEffect(() => {
+    if (!targetPosition) return;
+    const start = driverPosition ?? targetPosition;
+    const duration = 900;
+    let raf = 0;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const lat = start.lat + (targetPosition.lat - start.lat) * progress;
+      const lng = start.lng + (targetPosition.lng - start.lng) * progress;
+      setDriverPosition({ lat, lng });
+      if (progress < 1) {
+        raf = requestAnimationFrame(step);
+      }
+    };
+
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [targetPosition]);
+
+  useEffect(() => {
+    if (!lastUpdateAt) return;
+    const interval = window.setInterval(() => {
+      setIsTrackingStale(Date.now() - lastUpdateAt > 15000);
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [lastUpdateAt]);
 
   if (!order) {
     return (
@@ -170,7 +214,7 @@ export default function BuyerOrderTrackingPage({
             </div>
           </div>
 
-          <div className="bg-[#12021f]/60 backdrop-blur-md border border-white/10 p-6 rounded-2xl w-full max-w-sm flex flex-col gap-4">
+          <GlassPanel className="bg-[#12021f]/60 p-6 w-full max-w-sm flex flex-col gap-4">
             <div>
                <h3 className="text-white font-bold text-lg m-0 mb-1">Status</h3>
                <p className="text-purple-400 font-bold text-xl m-0">{statusLabels[order.status]}</p>
@@ -195,7 +239,7 @@ export default function BuyerOrderTrackingPage({
             <p className="text-white/40 text-[10px] uppercase tracking-wider m-0 text-center">
               Stub for Pusher events + REST replay
             </p>
-          </div>
+          </GlassPanel>
         </div>
       </section>
 
@@ -230,8 +274,8 @@ export default function BuyerOrderTrackingPage({
               <div className="absolute top-4 left-4 z-[1000] bg-[#12021f]/80 backdrop-blur px-4 py-2 rounded-xl border border-white/10 shadow-lg text-sm font-semibold text-white">Live map</div>
               <MapContainer
                 center={[
-                  trackingData?.driver?.lat ?? -1.29,
-                  trackingData?.driver?.lng ?? 36.82
+                  driverPosition?.lat ?? -1.29,
+                  driverPosition?.lng ?? 36.82
                 ]}
                 zoom={13}
                 style={{ height: "100%", width: "100%", background: "#0e0814" }}
@@ -248,8 +292,8 @@ export default function BuyerOrderTrackingPage({
                 </Marker>
                 <Marker
                   position={[
-                    trackingData?.driver?.lat ?? -1.29,
-                    trackingData?.driver?.lng ?? 36.82
+                  driverPosition?.lat ?? -1.29,
+                  driverPosition?.lng ?? 36.82
                   ]}
                 >
                   <Popup>Rider</Popup>
@@ -269,8 +313,8 @@ export default function BuyerOrderTrackingPage({
                       trackingData?.seller?.lng ?? 36.817223
                     ],
                     [
-                      trackingData?.driver?.lat ?? -1.29,
-                      trackingData?.driver?.lng ?? 36.82
+                      driverPosition?.lat ?? -1.29,
+                      driverPosition?.lng ?? 36.82
                     ],
                     [
                       trackingData?.destination?.lat ?? -1.295,
@@ -294,7 +338,18 @@ export default function BuyerOrderTrackingPage({
               <ul className="flex flex-col gap-5 m-0 p-0 list-none flex-1 overflow-y-auto pr-2">
                 <li className="flex justify-between items-center text-[15px]">
                   <span className="text-white/70">Rider assigned</span>
-                  <span className={`font-bold ${trackingData?.driver ? "text-green-400" : "text-white/40"}`}>{trackingData?.driver ? "Active" : "Pending"}</span>
+                  <span
+                    className={`font-bold ${
+                      driverPosition && !isTrackingStale ? "text-green-400" : "text-white/40"
+                    }`}
+                  >
+                    {driverPosition && !isTrackingStale ? "Active" : "Pending"}
+                  </span>
+                  {isTrackingStale ? (
+                    <span className="text-[10px] uppercase tracking-wider text-orange-300 font-bold">Signal lost</span>
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">Live</span>
+                  )}
                 </li>
                 <li className="flex justify-between items-center text-[15px]">
                   <span className="text-white/70">Rider picked up</span>

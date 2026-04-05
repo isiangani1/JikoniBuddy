@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import OrderWidget from "@/components/OrderWidget";
+import HowItWorksFlow from "@/components/HowItWorksFlow";
 
 const categories = [
   {
@@ -88,7 +89,7 @@ export default async function HomePage() {
     .slice(0, 4);
 
   return (
-    <main className="relative flex flex-col gap-16 overflow-hidden min-h-screen bg-[#090310] text-[#f2e9ff]">
+    <main className="relative flex min-h-screen flex-col gap-10 overflow-hidden text-white sm:gap-12 lg:gap-14">
       {/* Background Orbs */}
       <div className="pointer-events-none absolute -top-24 right-[-120px] h-72 w-72 rounded-full bg-purple-600/20 blur-[100px] animate-pulse" />
       <div className="pointer-events-none absolute left-[-120px] top-1/3 h-80 w-80 rounded-full bg-teal-500/10 blur-[100px]" />
@@ -97,24 +98,29 @@ export default async function HomePage() {
       <SiteHeader />
 
       {/* Hero Section */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-12 sm:px-6 lg:px-8 lg:pt-20 grid lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center min-w-0 pb-12">
+      <section className="relative z-10 mx-auto grid w-full max-w-7xl min-w-0 grid-cols-1 items-center gap-10 px-4 pb-12 pt-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:pt-20">
         <div className="flex flex-col gap-6 max-w-2xl">
-          <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-purple-300 font-bold tracking-widest uppercase text-xs w-max shadow-xl">
+          <p className="inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-purple-200 shadow-xl">
             <span className="flex h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-            Nairobi-first marketplace
+            Kenya-first marketplace
           </p>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[1.1] tracking-tight m-0 bg-clip-text text-white">Order fresh food, exactly when you need it.</h1>
-          <p className="text-white/70 m-0 text-lg sm:text-xl font-medium leading-relaxed">
+          <h1 className="m-0 text-5xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl">
+            Order fresh food, exactly when you need it.
+          </h1>
+          <p className="m-0 text-lg font-medium leading-relaxed text-white/70 sm:text-xl">
             Schedule meal prep, office bites, or picnic snacks with trusted
             local chefs. Reliable delivery, real-time updates, and safe
             payments.
           </p>
           <div className="flex flex-wrap gap-4 mt-2">
-            <Link className="px-8 py-3.5 rounded-2xl bg-[#2dd4bf] text-[#0d0a14] font-bold tracking-wide hover:opacity-90 hover:-translate-y-0.5 transition-all shadow-lg shadow-teal-500/20" href="/buyer">
+            <Link className="rounded-full bg-[#2dd4bf] px-8 py-3.5 text-sm font-semibold text-[#0d0a14] transition hover:opacity-90" href="/buyer">
               Find Food
             </Link>
-            <Link className="px-8 py-3.5 rounded-2xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold transition-all backdrop-blur hover:-translate-y-0.5" href="/seller">
+            <Link className="rounded-full border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10" href="/start-selling">
               Become a Seller
+            </Link>
+            <Link className="rounded-full bg-[#2dd4bf] px-8 py-3.5 text-sm font-semibold text-[#0d0a14] transition hover:opacity-90" href="/start-buddy">
+              Become a Buddy
             </Link>
           </div>
 
@@ -133,14 +139,14 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="relative w-full flex justify-center lg:justify-end mt-12 lg:mt-0">
+        <div className="relative mt-12 flex w-full justify-center lg:mt-0 lg:justify-end">
           <div className="relative w-full max-w-[400px]">
-            <div className="relative z-20 bg-[#120721]/80 backdrop-blur-2xl border border-white/10 rounded-[32px] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6)] hover:-translate-y-2 transition-transform duration-500">
+            <div className="relative z-20 rounded-[32px] border border-white/10 bg-[#120c1c]/80 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl transition-transform duration-500 hover:-translate-y-2">
               <OrderWidget />
             </div>
 
             {/* Floating Toasts */}
-            <div className="absolute -right-8 -top-12 z-30 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl animate-[float_6s_ease-in-out_infinite] hidden md:flex items-center gap-4">
+            <div className="absolute -right-8 -top-12 z-30 hidden items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl backdrop-blur-xl md:flex">
               <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center border border-amber-400/30 text-amber-400 font-bold text-lg">🛵</div>
               <div>
                 <p className="text-xs font-bold text-white/50 uppercase tracking-wider m-0">Buddy Network</p>
@@ -148,7 +154,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="absolute -left-12 -bottom-8 z-30 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl animate-[float_8s_ease-in-out_infinite_reverse] hidden md:flex items-center gap-4">
+            <div className="absolute -left-12 -bottom-8 z-30 hidden items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl backdrop-blur-xl md:flex">
               <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center border border-pink-500/30 text-pink-400 font-bold text-lg">🍜</div>
               <div>
                 <p className="text-xs font-bold text-white/50 uppercase tracking-wider m-0">Chef Joy</p>
@@ -160,7 +166,7 @@ export default async function HomePage() {
       </section>
 
       {/* Browse by Category */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 flex flex-col gap-8 animate-in fade-in duration-500 overflow-hidden">
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-6 flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden sm:py-8">
         <h2 className="text-3xl font-extrabold m-0">Browse by category</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {categories.map((category) => (
@@ -183,7 +189,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Sellers */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 flex flex-col gap-8 animate-in fade-in duration-500">
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-6 flex flex-col gap-6 animate-in fade-in duration-500 sm:py-8">
         <div className="flex flex-wrap items-center justify-between border-b border-white/10 pb-6 gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="text-3xl font-extrabold m-0">Featured sellers</h2>
@@ -226,38 +232,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* How it Works */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 flex flex-col gap-12 animate-in fade-in duration-500">
-        <h2 className="text-4xl font-extrabold m-0 text-center">How it works</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-          <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col gap-6 hover:bg-white/10 transition-all text-center group">
-            <span className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-2xl font-bold text-purple-300 mx-auto shadow-xl group-hover:scale-110 transition-transform">1</span>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-2xl font-bold m-0">Browse & Schedule</h3>
-              <p className="text-white/60 leading-relaxed font-medium">Choose meals and set your exact delivery window.</p>
-            </div>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col gap-6 hover:bg-white/10 transition-all text-center group">
-            <span className="w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-2xl font-bold text-teal-300 mx-auto shadow-xl group-hover:scale-110 transition-transform">2</span>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-2xl font-bold m-0">Pay Securely</h3>
-              <p className="text-white/60 leading-relaxed font-medium">Pay with M-Pesa or select pay on delivery.</p>
-            </div>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col gap-6 hover:bg-white/10 transition-all text-center group">
-            <span className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl font-bold text-amber-300 mx-auto shadow-xl group-hover:scale-110 transition-transform">3</span>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-2xl font-bold m-0">Track & Enjoy</h3>
-              <p className="text-white/60 leading-relaxed font-medium">Real-time updates from prep to delivery.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HowItWorksFlow />
 
       {/* Buddy Pool Promo */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16">
-        <div className="bg-gradient-to-br from-purple-900/30 to-teal-900/10 border border-white/10 rounded-[40px] p-12 text-center flex flex-col items-center gap-8 shadow-2xl backdrop-blur-3xl overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent opacity-30" />
+      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-10 sm:py-12">
+        <div className="text-center flex flex-col items-center gap-6 md:gap-8">
           <div className="flex flex-col gap-3">
             <h2 className="text-4xl md:text-5xl font-black m-0 mb-2">The Buddy Pool</h2>
             <p className="text-xl text-white/70 max-w-2xl leading-relaxed font-medium">
@@ -265,34 +244,14 @@ export default async function HomePage() {
               quality high and delivery on time. Our active network is always ready.
             </p>
           </div>
-          <Link className="px-10 py-4 rounded-2xl bg-[#2dd4bf] text-[#0d0a14] font-black text-lg hover:shadow-[0_0_50px_rgba(45,212,191,0.3)] transition-all flex items-center gap-3" href="/buddy-pool">
+          <Link className="w-full max-w-sm px-8 py-4 rounded-2xl bg-[#2dd4bf] text-[#0d0a14] font-black text-lg hover:shadow-[0_0_50px_rgba(45,212,191,0.3)] transition-all flex items-center justify-center gap-3" href="/buddy-pool">
             Learn About Buddy Pool <span className="text-2xl">→</span>
           </Link>
         </div>
       </section>
 
-      {/* Support Section */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 mb-12">
-        <div className="bg-white/5 border border-white/10 rounded-[32px] p-12 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 relative overflow-hidden backdrop-blur-md">
-          <div className="flex flex-col gap-3 max-w-xl">
-            <h2 className="text-4xl font-extrabold m-0">Need help fast?</h2>
-            <p className="text-lg text-white/50 m-0 font-medium">Chat with our operations team or reach out on WhatsApp for instant assistance with orders.</p>
-          </div>
-          <button className="px-10 py-4 rounded-2xl border-2 border-white/20 bg-white/5 hover:bg-white/10 text-white font-black text-lg transition-all backdrop-blur-xl shrink-0">Contact Support</button>
-        </div>
-      </section>
-
       <SiteFooter />
 
-      {/* Floating Animations */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes float {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-15px) rotate(2deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-      `}} />
     </main>
   );
 }

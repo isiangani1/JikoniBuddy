@@ -2,32 +2,53 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import PayoutMethodModal from "@/components/PayoutMethodModal";
 
 export default function SellerFinancialsPage() {
   const queryClient = useQueryClient();
   const [sellerId, setSellerId] = useState<string | null>(null);
+  const [isMethodOpen, setIsMethodOpen] = useState(false);
 
   useEffect(() => {
-    setSellerId(localStorage.getItem("jb_session") || "test-seller-1");
+    const sessionId =
+      sessionStorage.getItem("jb_user_id") ||
+      sessionStorage.getItem("jb_seller_id") ||
+      localStorage.getItem("jb_session") ||
+      "test-seller-1";
+    setSellerId(sessionId);
   }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["sellerFinancials", sellerId],
     queryFn: async () => {
       if (!sellerId) return null;
-      const res = await fetch(`/api/seller/financials?sellerId=${sellerId}`);
-      if (!res.ok) throw new Error("Failed to load financials");
-      return res.json();
+      const walletRes = await fetch(
+        `/api/payout/wallet?userId=${sellerId}&type=seller`
+      );
+      const txRes = await fetch(
+        `/api/payout/transactions?userId=${sellerId}&type=seller`
+      );
+      if (!walletRes.ok || !txRes.ok) {
+        throw new Error("Failed to load financials");
+      }
+      const wallet = await walletRes.json();
+      const transactions = await txRes.json();
+      return { wallet, transactions };
     },
     enabled: !!sellerId,
   });
 
   const payoutMutation = useMutation({
     mutationFn: async (amount: number) => {
-      const res = await fetch(`/api/seller/financials`, {
+      const res = await fetch(`/api/payout/withdraw`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sellerId, amount })
+        body: JSON.stringify({
+          userId: sellerId,
+          walletType: "seller",
+          amount,
+          instant: true
+        })
       });
       if (!res.ok) throw new Error("Payout failed");
       return res.json();
@@ -40,10 +61,12 @@ export default function SellerFinancialsPage() {
 
   if (isLoading) return <div className="p-8 text-center text-white/50"><p className="animate-pulse">Syncing with bank node...</p></div>;
 
-  const payments = data?.payments || [];
-  const earnings = data?.earnings || [];
-  const totalBalance = data?.totalBalance || 0;
-  const pendingBalance = data?.pendingBalance || 0;
+  const wallet = data?.wallet;
+  const transactions = data?.transactions || [];
+  const totalBalance = wallet?.balance || 0;
+  const pendingBalance = wallet?.pendingBalance || 0;
+  const earnings = transactions.filter((t: any) => t.type === "earning");
+  const withdrawals = transactions.filter((t: any) => t.type === "withdrawal");
 
   return (
     <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8">
@@ -58,13 +81,21 @@ export default function SellerFinancialsPage() {
               <p className="text-teal-400/80 font-bold tracking-widest uppercase text-[10px] m-0 mb-1">Available For Payout</p>
               <h2 className="text-3xl font-extrabold text-white m-0 tracking-tight">KES {totalBalance.toLocaleString()}</h2>
            </div>
-           <button 
-             className="px-8 py-4 sm:py-0 sm:h-[84px] rounded-2xl bg-teal-400 hover:bg-teal-300 disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed text-[#1a1026] font-extrabold text-lg transition-all shadow-lg shadow-teal-400/20 active:scale-95"
-             disabled={totalBalance <= 0 || payoutMutation.isPending}
-             onClick={() => payoutMutation.mutate(totalBalance)}
-           >
-             {payoutMutation.isPending ? "Connecting..." : "Request Payout"}
-           </button>
+           <div className="flex flex-col sm:flex-row gap-3">
+             <button 
+               className="px-8 py-4 sm:py-0 sm:h-[84px] rounded-2xl bg-teal-400 hover:bg-teal-300 disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed text-[#1a1026] font-extrabold text-lg transition-all shadow-lg shadow-teal-400/20 active:scale-95"
+               disabled={totalBalance <= 0 || payoutMutation.isPending}
+               onClick={() => payoutMutation.mutate(totalBalance)}
+             >
+               {payoutMutation.isPending ? "Connecting..." : "Request Payout"}
+             </button>
+             <button
+               className="px-6 py-3 rounded-2xl border border-white/15 bg-white/5 text-white/80 font-semibold hover:bg-white/10 transition-all"
+               onClick={() => setIsMethodOpen(true)}
+             >
+               Update M-Pesa details
+             </button>
+           </div>
         </div>
       </header>
 
@@ -75,12 +106,12 @@ export default function SellerFinancialsPage() {
             <h3 className="text-xl font-bold text-white m-0">Recent Inflow</h3>
           </div>
           <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2" style={{ maxHeight: "500px" }}>
-            {payments.map((p: any) => (
+            {earnings.map((p: any) => (
               <div key={p.id} className="flex justify-between items-center bg-black/20 hover:bg-white/5 transition-colors p-4 rounded-xl border border-white/5">
                 <div className="flex flex-col gap-1">
-                  <span className="text-white font-bold text-[15px]">Order #{p.orderId.slice(-6)}</span>
+                  <span className="text-white font-bold text-[15px]">Order #{String(p.reference ?? "").slice(-6)}</span>
                   <span className="text-xs text-white/50 font-medium">
-                    {new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} • {p.order.buyer.name}
+                    {new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 <div className="flex flex-col items-end gap-1">
@@ -89,7 +120,7 @@ export default function SellerFinancialsPage() {
                 </div>
               </div>
             ))}
-            {payments.length === 0 && (
+            {earnings.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-white/40 py-12 border-2 border-dashed border-white/10 rounded-xl gap-2">
                 <span className="text-3xl opacity-50">🧾</span>
                 <p className="m-0 text-sm font-medium">No inflow transactions yet.</p>
@@ -104,7 +135,7 @@ export default function SellerFinancialsPage() {
             <h3 className="text-xl font-bold text-white m-0">Payout History</h3>
           </div>
           <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2" style={{ maxHeight: "500px" }}>
-             {earnings.filter((e: any) => e.type === "withdrawal").map((e: any) => (
+             {withdrawals.map((e: any) => (
                 <div key={e.id} className="flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors p-4 rounded-xl border border-white/5">
                   <div className="flex flex-col gap-1">
                     <span className="text-white font-bold text-[15px]">M-Pesa Withdrawal</span>
@@ -116,7 +147,7 @@ export default function SellerFinancialsPage() {
                   </div>
                 </div>
              ))}
-             {earnings.filter((e: any) => e.type === "withdrawal").length === 0 && (
+             {withdrawals.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-white/40 py-12 border-2 border-dashed border-white/10 rounded-xl gap-2">
                   <span className="text-3xl opacity-50">🏧</span>
                   <p className="m-0 text-sm font-medium">No past payouts found.</p>
@@ -133,6 +164,12 @@ export default function SellerFinancialsPage() {
           <p className="m-0 text-sm text-purple-200/70 leading-relaxed font-medium">Withdrawals under <strong className="text-purple-300">KES 50,000</strong> are processed instantly to your registered M-Pesa number. Larger amounts may take up to 4 hours for AML verification.</p>
         </div>
       </div>
+      <PayoutMethodModal
+        isOpen={isMethodOpen}
+        onClose={() => setIsMethodOpen(false)}
+        userId={sellerId}
+        roleLabel="Seller"
+      />
     </main>
   );
 }
