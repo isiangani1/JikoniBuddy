@@ -6,12 +6,20 @@ import Link from "next/link";
 import { sellers } from "@/data/sellers";
 import {
   addCartItem,
-  computeSellerAverageRating,
   computeSubtotal,
-  getSellerReviews,
   loadBuyerState,
   updateCartQty
 } from "@/data/buyerStorage";
+import { gatewayFetchJson } from "@/lib/gateway";
+
+type ReviewRow = {
+  id: string;
+  sellerId: string;
+  orderId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
 
 export default function BuyerSellerDetailPage({
   params
@@ -21,6 +29,11 @@ export default function BuyerSellerDetailPage({
   const router = useRouter();
   const seller = sellers.find((item) => item.id === params.id);
   const [cartVersion, setCartVersion] = useState(0);
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [reviewStats, setReviewStats] = useState<{ average: number; count: number } | null>(
+    null
+  );
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -41,15 +54,41 @@ export default function BuyerSellerDetailPage({
     [cart]
   );
 
-  const reviews = useMemo(
-    () => (seller ? getSellerReviews(seller.id) : []),
-    [seller, cartVersion]
-  );
+  useEffect(() => {
+    if (!seller) return;
+    let isMounted = true;
+    setReviewsLoading(true);
+    Promise.all([
+      gatewayFetchJson<{ count: number; average: number; latest: ReviewRow[] }>(
+        `/api/review/reviews/summary?sellerId=${encodeURIComponent(seller.id)}`
+      ),
+      gatewayFetchJson<ReviewRow[]>(
+        `/api/review/reviews?sellerId=${encodeURIComponent(seller.id)}`
+      )
+    ])
+      .then(([summary, list]) => {
+        if (!isMounted) return;
+        setReviewStats({ average: summary.average, count: summary.count });
+        setReviews(list);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setReviewStats(null);
+        setReviews([]);
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setReviewsLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [seller]);
 
-  const averageRating = useMemo(
-    () => (seller ? computeSellerAverageRating(seller.id) : null),
-    [seller, cartVersion]
-  );
+  const averageRating = useMemo(() => {
+    if (reviewStats) return reviewStats.average;
+    return seller ? seller.rating : null;
+  }, [reviewStats, seller]);
 
   const handleCheckout = () => {
     router.push("/buyer/checkout");
@@ -189,10 +228,14 @@ export default function BuyerSellerDetailPage({
           <h2>Reviews</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
-              <h3>Verified buyer reviews</h3>
-              {reviews.length ? (
+            <h3>Verified buyer reviews</h3>
+              {reviewsLoading ? (
+                <p className="text-white/50 text-sm">Loading reviews…</p>
+              ) : reviews.length ? (
                 <div>
-                  <p className="text-white/50 text-sm">Average: {(averageRating ?? 0).toFixed(1)} ★</p>
+                  <p className="text-white/50 text-sm">
+                    Average: {(averageRating ?? 0).toFixed(1)} ★ · {reviewStats?.count ?? reviews.length} reviews
+                  </p>
                   <ul>
                     {reviews.slice(0, 3).map((review) => (
                       <li key={review.id}>

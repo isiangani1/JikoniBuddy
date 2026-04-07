@@ -19,6 +19,8 @@ export default function BuyerAccountPage() {
   const [name, setName] = useState(buyerState.profile.name);
   const [phone, setPhone] = useState(buyerState.profile.phone);
   const [email, setEmail] = useState(buyerState.profile.email);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const [addressLabel, setAddressLabel] = useState("");
   const [addressLocation, setAddressLocation] = useState("");
@@ -36,9 +38,61 @@ export default function BuyerAccountPage() {
     }
   }, [router]);
 
-  const handleSaveProfile = () => {
+  useEffect(() => {
+    const userId =
+      sessionStorage.getItem("jb_user_id") ??
+      sessionStorage.getItem("jb_buyer_id");
+    if (!userId) return;
+    let isMounted = true;
+    setIsSyncing(true);
+    setSyncError(null);
+    fetch(`/api/user/${userId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (!isMounted || !payload) return;
+        updateBuyerProfile({
+          name: payload.name ?? "",
+          phone: payload.phone ?? "",
+          email: payload.email ?? ""
+        });
+        setVersion((v) => v + 1);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setSyncError("Could not sync profile from the server.");
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsSyncing(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveProfile = async () => {
+    const userId =
+      sessionStorage.getItem("jb_user_id") ??
+      sessionStorage.getItem("jb_buyer_id");
     updateBuyerProfile({ name, phone, email });
     setVersion((v) => v + 1);
+    if (!userId) return;
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const res = await fetch(`/api/user/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, email })
+      });
+      if (!res.ok) {
+        throw new Error("Failed");
+      }
+    } catch {
+      setSyncError("Could not save profile changes.");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleAddAddress = () => {
@@ -102,7 +156,10 @@ export default function BuyerAccountPage() {
             <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" type="button" onClick={handleSaveProfile}>
               Save profile
             </button>
-            <p className="text-white/50 text-sm">Stored locally for now. Ready for API wiring.</p>
+            <p className="text-white/50 text-sm">
+              {isSyncing ? "Syncing with your account..." : "Profile synced through the gateway."}
+            </p>
+            {syncError ? <p className="text-rose-300 text-sm m-0">{syncError}</p> : null}
           </div>
         </section>
 

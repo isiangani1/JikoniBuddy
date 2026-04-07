@@ -12,10 +12,20 @@ import { GlassPanel } from "@/components/ui/GlassPanel";
 import {
   BuyerOrderStatus,
   getOrder,
-  getOrderReview,
   getRefundRequestForOrder,
   updateOrderStatus
 } from "@/data/buyerStorage";
+import { gatewayFetchJson } from "@/lib/gateway";
+
+type ReviewRow = {
+  id: string;
+  sellerId: string;
+  orderId: string;
+  buyerId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
 
 const statusLabels: Record<BuyerOrderStatus, string> = {
   placed: "Placed",
@@ -55,6 +65,7 @@ export default function BuyerOrderTrackingPage({
   const [targetPosition, setTargetPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
   const [isTrackingStale, setIsTrackingStale] = useState(false);
+  const [existingReview, setExistingReview] = useState<ReviewRow | null>(null);
 
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
@@ -64,7 +75,6 @@ export default function BuyerOrderTrackingPage({
   }, [router]);
 
   const order = useMemo(() => getOrder(params.id), [params.id, version]);
-  const existingReview = useMemo(() => getOrderReview(params.id), [params.id, version]);
   const existingRefund = useMemo(() => getRefundRequestForOrder(params.id), [params.id, version]);
   const seller = useMemo(() => {
     if (!order) return null;
@@ -77,6 +87,25 @@ export default function BuyerOrderTrackingPage({
     window.addEventListener("orders-updated", handleUpdate);
     return () => window.removeEventListener("orders-updated", handleUpdate);
   }, [order]);
+
+  useEffect(() => {
+    if (!order) return;
+    let isMounted = true;
+    gatewayFetchJson<ReviewRow[]>(
+      `/api/review/reviews?orderId=${encodeURIComponent(order.id)}`
+    )
+      .then((rows) => {
+        if (!isMounted) return;
+        setExistingReview(rows[0] ?? null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setExistingReview(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [order, version]);
 
   useEffect(() => {
     if (!order) return;

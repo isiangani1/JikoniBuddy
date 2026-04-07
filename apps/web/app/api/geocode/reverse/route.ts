@@ -8,21 +8,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ label: null }, { status: 400 });
   }
 
-  const upstream = new URL("https://nominatim.openstreetmap.org/reverse");
-  upstream.searchParams.set("lat", lat);
-  upstream.searchParams.set("lon", lng);
-  upstream.searchParams.set("format", "json");
-
-  const res = await fetch(upstream.toString(), {
-    headers: {
-      "User-Agent": "JikoniBuddy/1.0",
-      "Accept-Language": "en"
-    },
-    cache: "no-store"
-  });
-
-  const data = await res.json().catch(() => ({}));
-  const label = data?.display_name ?? null;
-
-  return NextResponse.json({ label });
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+  const res = await fetch(
+    `${baseUrl}/api/geolocation/geocode/reverse?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
+    { cache: "no-store" }
+  );
+  const data = await res.json().catch(() => ({ label: null }));
+  return NextResponse.json(data);
 }

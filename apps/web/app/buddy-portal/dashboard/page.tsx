@@ -172,7 +172,6 @@ export default function BuddyPortalDashboard() {
     }
   };
 
-  // Removed toggleOnline function as local state and toggle button are removed.
 
   return (
     <main className="flex flex-col gap-8 w-full max-w-6xl mx-auto">

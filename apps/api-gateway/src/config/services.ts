@@ -54,6 +54,11 @@ export const services: Record<string, ServiceConfig> = {
     baseUrl: env.NOTIFICATION_SERVICE_URL ?? "http://127.0.0.1:4011",
     healthPath: env.NOTIFICATION_SERVICE_HEALTH ?? defaultHealthPath
   },
+  geolocation: {
+    key: "geolocation",
+    baseUrl: env.GEOLOCATION_SERVICE_URL ?? "http://127.0.0.1:4019",
+    healthPath: env.GEOLOCATION_SERVICE_HEALTH ?? defaultHealthPath
+  },
   menu: {
     key: "menu",
     baseUrl: env.MENU_SERVICE_URL ?? "http://127.0.0.1:4006",

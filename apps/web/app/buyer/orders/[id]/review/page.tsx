@@ -4,7 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { sellers } from "@/data/sellers";
-import { getOrder, getOrderReview, submitReview } from "@/data/buyerStorage";
+import { getOrder } from "@/data/buyerStorage";
+import { gatewayFetchJson } from "@/lib/gateway";
+
+type ReviewRow = {
+  id: string;
+  sellerId: string;
+  orderId: string;
+  buyerId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
 
 export default function BuyerOrderReviewPage({
   params
@@ -14,6 +25,8 @@ export default function BuyerOrderReviewPage({
   const router = useRouter();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [existing, setExisting] = useState<ReviewRow | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
@@ -28,14 +41,29 @@ export default function BuyerOrderReviewPage({
     return sellers.find((item) => item.id === order.sellerId) ?? null;
   }, [order]);
 
-  const existing = useMemo(() => getOrderReview(params.id), [params.id]);
-
   useEffect(() => {
-    if (existing) {
-      setRating(existing.rating);
-      setComment(existing.comment);
-    }
-  }, [existing]);
+    if (!order) return;
+    let isMounted = true;
+    gatewayFetchJson<ReviewRow[]>(
+      `/api/review/reviews?orderId=${encodeURIComponent(order.id)}`
+    )
+      .then((rows) => {
+        if (!isMounted) return;
+        const row = rows[0] ?? null;
+        setExisting(row);
+        if (row) {
+          setRating(row.rating);
+          setComment(row.comment ?? "");
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setExisting(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [order]);
 
   if (!order) {
     return (
@@ -69,14 +97,37 @@ export default function BuyerOrderReviewPage({
     );
   }
 
-  const handleSubmit = () => {
-    submitReview({
-      sellerId: order.sellerId,
-      orderId: order.id,
-      rating,
-      comment
-    });
-    router.push(`/buyer/sellers/${order.sellerId}`);
+  const handleSubmit = async () => {
+    if (!order) return;
+    const buyerId =
+      sessionStorage.getItem("jb_user_id") ??
+      sessionStorage.getItem("jb_buyer_id") ??
+      "";
+    if (!buyerId) {
+      alert("Please log in to submit a review.");
+      router.replace("/login");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const payload = await gatewayFetchJson<ReviewRow>("/api/review/reviews", {
+        method: "POST",
+        body: JSON.stringify({
+          sellerId: order.sellerId,
+          orderId: order.id,
+          buyerId,
+          rating,
+          comment
+        })
+      });
+      setExisting(payload);
+      router.push(`/buyer/sellers/${order.sellerId}`);
+    } catch (error) {
+      console.error(error);
+      alert("Could not submit review. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -130,8 +181,13 @@ export default function BuyerOrderReviewPage({
                 placeholder="What went well? What could be improved?"
               />
             </label>
-            <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" type="button" onClick={handleSubmit}>
-              Submit review
+            <button
+              className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-70"
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit review"}
             </button>
           </div>
         </section>

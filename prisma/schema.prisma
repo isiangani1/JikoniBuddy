@@ -327,6 +327,19 @@ model Rating {
   createdAt DateTime    @default(now())
 }
 
+model Review {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  sellerId  String
+  buyerId   String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([sellerId])
+  @@index([buyerId])
+}
+
 model Earning {
   id        String       @id @default(cuid())
   user      User         @relation(fields: [userId], references: [id])
