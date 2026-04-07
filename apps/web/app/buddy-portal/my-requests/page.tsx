@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchBuddyJson, getBuddyId } from "@/lib/buddy-client";
+import { pushToast } from "@/lib/toast-store";
 import { useRouter } from "next/navigation";
 
 type RequestRow = {
@@ -20,6 +21,7 @@ const fallbackRequests: RequestRow[] = [];
 export default function BuddyPortalMyRequestsPage() {
   const [requests, setRequests] = useState<RequestRow[]>(fallbackRequests);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,13 +29,15 @@ export default function BuddyPortalMyRequestsPage() {
       .then((data) => {
         setRequests(data ?? []);
       })
-      .catch(() => setRequests([]));
+      .catch(() => setRequests([]))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleAccept = async (requestId: string) => {
     const helperId = getBuddyId();
     if (!helperId) {
       setActionStatus("Please log in as a buddy to accept requests.");
+      pushToast({ title: "Login required", message: "Please log in as a buddy to accept requests.", variant: "error" });
       return;
     }
     try {
@@ -48,12 +52,13 @@ export default function BuddyPortalMyRequestsPage() {
         throw new Error("Unable to accept request.");
       }
       setActionStatus("Request accepted. Moving to active jobs.");
+      pushToast({ title: "Request accepted", message: "You are now assigned to this job.", variant: "success" });
       setRequests((prev) => prev.filter((req) => req.id !== requestId));
       router.push("/buddy-portal/active-jobs");
     } catch (error) {
-      setActionStatus(
-        error instanceof Error ? error.message : "Unable to accept request."
-      );
+      const message = error instanceof Error ? error.message : "Unable to accept request.";
+      setActionStatus(message);
+      pushToast({ title: "Request failed", message, variant: "error" });
     }
   };
 
@@ -61,6 +66,7 @@ export default function BuddyPortalMyRequestsPage() {
     const helperId = getBuddyId();
     if (!helperId) {
       setActionStatus("Please log in as a buddy to reject requests.");
+      pushToast({ title: "Login required", message: "Please log in as a buddy to reject requests.", variant: "error" });
       return;
     }
     const baseUrl =
@@ -73,8 +79,12 @@ export default function BuddyPortalMyRequestsPage() {
       .then(() => {
         setRequests((prev) => prev.filter((req) => req.id !== requestId));
         setActionStatus("Request declined.");
+        pushToast({ title: "Request declined", message: "We’ll stop showing this request.", variant: "info" });
       })
-      .catch(() => setActionStatus("Unable to decline request."));
+      .catch(() => {
+        setActionStatus("Unable to decline request.");
+        pushToast({ title: "Decline failed", message: "Unable to decline request.", variant: "error" });
+      });
   };
 
   return (
@@ -103,14 +113,26 @@ export default function BuddyPortalMyRequestsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {requests.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <tr key={`skeleton-${index}`} className="animate-pulse">
+                      <td className="p-4"><div className="h-4 w-32 rounded bg-white/10" /></td>
+                      <td className="p-4"><div className="h-4 w-40 rounded bg-white/10" /></td>
+                      <td className="p-4"><div className="h-4 w-36 rounded bg-white/10" /></td>
+                      <td className="p-4"><div className="h-4 w-20 rounded bg-white/10" /></td>
+                      <td className="p-4"><div className="h-8 w-32 rounded bg-white/10" /></td>
+                      <td className="p-4"><div className="h-4 w-16 rounded bg-white/10" /></td>
+                    </tr>
+                  ))
+                ) : null}
+                {!isLoading && requests.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-white/40 italic">
                       No open requests yet.
                     </td>
                   </tr>
                 ) : null}
-                {requests.map((request) => (
+                {!isLoading && requests.map((request) => (
                   <tr
                     key={request.id}
                     className="hover:bg-white/5 transition-colors cursor-pointer group"
@@ -166,6 +188,31 @@ export default function BuddyPortalMyRequestsPage() {
               </tbody>
             </table>
           </div>
+          {!isLoading && requests.length === 0 ? (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/5 border border-white/10 rounded-2xl p-6">
+              <div>
+                <h3 className="text-lg font-semibold text-white m-0">No requests in your area yet</h3>
+                <p className="m-0 mt-2 text-sm text-white/60">
+                  Stay online and we’ll notify you the moment a seller needs help.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-colors"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh
+                </button>
+                <Link
+                  href="/buddy-portal/status"
+                  className="px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors"
+                >
+                  Update status
+                </Link>
+              </div>
+            </div>
+          ) : null}
         </section>
       </main>
     </>

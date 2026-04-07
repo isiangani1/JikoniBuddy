@@ -83,6 +83,10 @@ Goal: Make the API Gateway the **single entry point** for all client traffic (we
 - [x] CI test pipeline for gateway
 - [ ] Staging + prod deploy pipelines
 - [ ] Rollback strategy + blue/green support
+- [ ] Terraform/infra scripts for gateway service, ALB/ingress, and env vars
+- [ ] Image tagging + promotion flow (dev → staging → prod)
+- [ ] Health check + smoke tests in deploy pipeline
+- [ ] Canary or blue/green traffic shift plan with rollback trigger
 
 ---
 
@@ -91,6 +95,8 @@ Goal: Make the API Gateway the **single entry point** for all client traffic (we
 - [x] Remove direct service URLs from clients
 - [ ] Validate existing endpoints work via gateway
 - [ ] Regression tests for routing
+- [ ] Add a gateway conformance suite (critical paths across buyer/seller/buddy/admin)
+- [ ] Record known deviations + required rewrites for non-REST endpoints (websockets)
 
 ---
 
@@ -127,6 +133,9 @@ Purpose: Centralize auth flow at the API Gateway while delegating identity, cred
 - [ ] Cache public keys / JWKS for token validation
 - [x] Enforce role-based routing and deny mismatched roles
 - [ ] Emit audit events for login/logout/refresh
+- [ ] Standardize auth error codes and map to UI-friendly messages
+- [ ] Implement JWT key rotation cache (TTL + background refresh)
+- [ ] Centralized auth rate limiting + IP risk scoring hooks
 
 ## Auth Service Responsibilities
 - [ ] Store user credentials + password hashing
@@ -134,6 +143,8 @@ Purpose: Centralize auth flow at the API Gateway while delegating identity, cred
 - [ ] Maintain token revocation list
 - [ ] Return role + permissions in token claims
 - [ ] Publish security events (lockout, suspicious login)
+- [ ] Enforce email/phone verification before privileged actions
+- [ ] Provide admin user suspension + reactivation endpoints
 
 ## Orchestration Checklist
 - [ ] Define token claims standard (sub, role, org, scopes, exp)
@@ -142,3 +153,5 @@ Purpose: Centralize auth flow at the API Gateway while delegating identity, cred
 - [ ] Add brute-force detection + IP throttling
 - [ ] Add account lockout + password reset flow
 - [ ] Add 2FA hooks (optional, phase 2)
+- [ ] Threat-model auth flows (token theft, replay, session fixation)
+- [ ] Document auth contract for all services (token verification + audience)

@@ -44,4 +44,10 @@ export class PayoutController {
     await this.payoutService.validatePayoutUserRole(dto.userId);
     return this.payoutService.savePayoutMethod(dto);
   }
+
+  @Get("payout-method")
+  async getPayoutMethods(@Query("userId") userId: string) {
+    await this.payoutService.validatePayoutUserRole(userId);
+    return this.payoutService.getPayoutMethods(userId);
+  }
 }

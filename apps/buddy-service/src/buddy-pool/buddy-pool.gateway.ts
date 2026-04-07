@@ -68,6 +68,20 @@ export class BuddyPoolGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
   }
 
+  notifyBuddyJobStatus(helperId: string, jobData: any) {
+    const socketId = this.connectedBuddies.get(helperId);
+    if (socketId) {
+      this.server.to(socketId).emit('buddy.job_status', jobData);
+    }
+  }
+
+  notifySellerJobStatus(sellerId: string, jobData: any) {
+    const socketId = this.connectedBuddies.get(sellerId);
+    if (socketId) {
+      this.server.to(socketId).emit('seller.job_status', jobData);
+    }
+  }
+
   @SubscribeMessage('ping')
   handlePing() {
     return { event: 'pong', data: 'ok' };

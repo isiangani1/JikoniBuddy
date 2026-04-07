@@ -8,6 +8,8 @@ import SiteFooter from "@/components/SiteFooter";
 import PortalGuard from "@/components/PortalGuard";
 import { useBuddyStore } from "@/lib/buddy-store";
 import dynamic from "next/dynamic";
+import ToastStack from "@/components/ToastStack";
+import { pushToast } from "@/lib/toast-store";
 const DemandMapModal = dynamic(() => import("@/components/DemandMapModal"), { ssr: false });
   const navItems = [
     { label: "Dashboard", href: "/buddy-portal/dashboard"},
@@ -50,6 +52,7 @@ export default function BuddyPortalLayout({
   const [autoMatchedJob, setAutoMatchedJob] = useState<any>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const offlineQueueKey = "jb_notification_queue";
 
   useEffect(() => {
     // Initial sync from DB/LocalStorage on mount
@@ -125,8 +128,43 @@ export default function BuddyPortalLayout({
       transports: ["websocket"]
     });
 
+    socket.on("connect", () => {
+      const stored = localStorage.getItem(offlineQueueKey);
+      if (!stored) return;
+      try {
+        const queued = JSON.parse(stored) as {
+          title: string;
+          message: string;
+          createdAt: string;
+        }[];
+        queued.forEach((note) =>
+          pushToast({
+            title: note.title,
+            message: note.message,
+            variant: "info"
+          })
+        );
+      } catch {
+        // ignore parse errors
+      }
+      localStorage.removeItem(offlineQueueKey);
+    });
+
     socket.on("buddy.job_offered", (jobRequest: any) => {
       setIncomingJob(jobRequest);
+      const payload = {
+        title: "New job request",
+        message: `${jobRequest?.taskType ?? "Job"} · ${jobRequest?.locationLabel ?? "Nearby"}`,
+        createdAt: new Date().toISOString()
+      };
+      if (navigator.onLine) {
+        pushToast({ title: payload.title, message: payload.message, variant: "info" });
+      } else {
+        const existing = localStorage.getItem(offlineQueueKey);
+        const list = existing ? JSON.parse(existing) : [];
+        list.unshift(payload);
+        localStorage.setItem(offlineQueueKey, JSON.stringify(list.slice(0, 10)));
+      }
     });
 
     socket.on("buddy.job_confirmed", (jobData: any) => {
@@ -510,6 +548,8 @@ export default function BuddyPortalLayout({
         {showDemandMap && (
           <DemandMapModal onClose={() => setShowDemandMap(false)} />
         )}
+
+        <ToastStack />
       </div>
     </PortalGuard>
   );

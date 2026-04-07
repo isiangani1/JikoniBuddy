@@ -11,36 +11,18 @@ type JobRow = {
   status: string;
 };
 
-const fallbackJobs: JobRow[] = [
-  {
-    title: "Packaging support",
-    seller: "Nairobi Kitchen",
-    time: "Mar 18, 2026 · 2 hours",
-    pay: "KES 800",
-    status: "completed"
-  },
-  {
-    title: "Cooking shift",
-    seller: "Chef Amani",
-    time: "Mar 15, 2026 · 3 hours",
-    pay: "KES 1,500",
-    status: "completed"
-  },
-  {
-    title: "Delivery run",
-    seller: "Swahili Spice",
-    time: "Mar 13, 2026 · 1 trip",
-    pay: "KES 300",
-    status: "completed"
-  }
-];
+const fallbackJobs: JobRow[] = [];
 
 export default function BuddyPortalHistoryPage() {
   const [jobs, setJobs] = useState<JobRow[]>(fallbackJobs);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const buddyId = getBuddyId();
-    if (!buddyId) return;
+    if (!buddyId) {
+      setIsLoading(false);
+      return;
+    }
     fetchBuddyJson<
       {
         title: string;
@@ -71,7 +53,8 @@ export default function BuddyPortalHistoryPage() {
         }));
         setJobs(mapped);
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -93,7 +76,17 @@ export default function BuddyPortalHistoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {jobs.map((job) => (
+                {isLoading
+                  ? Array.from({ length: 4 }).map((_, index) => (
+                      <tr key={`skeleton-${index}`} className="animate-pulse">
+                        <td className="p-4"><div className="h-4 w-32 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-28 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-40 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-20 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-5 w-16 rounded bg-white/10" /></td>
+                      </tr>
+                    ))
+                  : jobs.map((job) => (
                   <tr key={`${job.title}-${job.seller}`}>
                     <td data-label="Job">{job.title}</td>
                     <td data-label="Seller">{job.seller}</td>
@@ -107,6 +100,20 @@ export default function BuddyPortalHistoryPage() {
               </tbody>
             </table>
           </div>
+          {!isLoading && jobs.length === 0 ? (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
+              <h3 className="text-lg font-semibold text-white m-0">No completed jobs yet</h3>
+              <p className="m-0 mt-2 text-sm text-white/60">
+                Accept your first request and your history will show up here.
+              </p>
+              <a
+                href="/buddy-portal/my-requests"
+                className="inline-flex items-center justify-center mt-4 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-colors"
+              >
+                View open requests
+              </a>
+            </div>
+          ) : null}
         </section>
       </main>
     </>

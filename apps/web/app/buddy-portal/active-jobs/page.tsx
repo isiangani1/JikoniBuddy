@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { fetchBuddyJson, getBuddyId } from "@/lib/buddy-client";
 import { io } from "socket.io-client";
+import { pushToast } from "@/lib/toast-store";
 
 type JobRow = {
   id: string;
@@ -47,17 +48,52 @@ export default function BuddyPortalActiveJobsPage() {
   const [selectedJob, setSelectedJob] = useState<JobRow | null>(null);
   const [isSlideComplete, setIsSlideComplete] = useState(false);
   const lastSentRef = useRef(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [jobNote, setJobNote] = useState("");
+  const [disputeNote, setDisputeNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
 
   useEffect(() => {
     const buddyId = getBuddyId();
-    if (!buddyId) return;
+    if (!buddyId) {
+      setIsLoading(false);
+      return;
+    }
     fetchBuddyJson<JobRow[]>(
       `/users/${buddyId}/jobs?status=scheduled,in_progress`
     )
       .then((data) => {
         if (data?.length) setJobs(data);
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const buddyId = getBuddyId();
+    if (!buddyId) return;
+    const socketUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketUrl}/ws/buddy`, {
+      query: { userId: buddyId },
+      transports: ["websocket"]
+    });
+
+    socket.on("buddy.job_status", (jobUpdate: JobRow) => {
+      setJobs((prev) =>
+        prev.some((job) => job.id === jobUpdate.id)
+          ? prev.map((job) => (job.id === jobUpdate.id ? { ...job, ...jobUpdate } : job))
+          : [jobUpdate, ...prev]
+      );
+      setSelectedJob((prev) =>
+        prev?.id === jobUpdate.id ? { ...prev, ...jobUpdate } : prev
+      );
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -73,6 +109,11 @@ export default function BuddyPortalActiveJobsPage() {
         const now = Date.now();
         if (now - lastSentRef.current < 3000) return;
         lastSentRef.current = now;
+        setLastCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
         socket.emit("tracking:update", {
           orderId: selectedJob.id,
           buddyId: getBuddyId(),
@@ -102,23 +143,121 @@ export default function BuddyPortalActiveJobsPage() {
 
   const completeJob = () => {
     if (!selectedJob) return;
-    const socketUrl =
+    const helperId = getBuddyId();
+    if (!helperId) {
+      pushToast({ title: "Login required", message: "Please log in as a buddy.", variant: "error" });
+      return;
+    }
+    const baseUrl =
       process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
-    const socket = io(`${socketUrl}/ws/buddy`, { transports: ["websocket"] });
+    setIsSubmitting(true);
+    fetch(`${baseUrl}/api/buddy/jobs/${selectedJob.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ helperId, note: jobNote || undefined })
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Unable to complete job.");
+        pushToast({ title: "Job completed", message: "Seller has been notified.", variant: "success" });
+        setSelectedJob(null);
+        setIsSlideComplete(false);
+        setJobNote("");
+        setJobs((prev) => prev.filter((j) => j.id !== selectedJob.id));
+      })
+      .catch(() =>
+        pushToast({ title: "Completion failed", message: "Try again in a moment.", variant: "error" })
+      )
+      .finally(() => setIsSubmitting(false));
+  };
 
-    socket.emit("buddy.job_completed", {
-      requestId: selectedJob.id,
-      helperId: getBuddyId(),
-      sellerId: selectedJob.sellerId,
-      payAmount: selectedJob.payAmount
-    });
+  const handleCheckIn = async () => {
+    if (!selectedJob) return;
+    const helperId = getBuddyId();
+    if (!helperId) return;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/buddy/jobs/${selectedJob.id}/checkin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ helperId, ...lastCoords })
+      });
+      if (!res.ok) throw new Error();
+      pushToast({ title: "Checked in", message: "Your arrival has been recorded.", variant: "success" });
+    } catch {
+      pushToast({ title: "Check-in failed", message: "Please try again.", variant: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    alert("Awesome! Job marked as complete. The Seller has been notified to approve your M-Pesa payout.");
-    setSelectedJob(null);
-    setIsSlideComplete(false);
+  const handleCheckOut = async () => {
+    if (!selectedJob) return;
+    const helperId = getBuddyId();
+    if (!helperId) return;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/buddy/jobs/${selectedJob.id}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ helperId, ...lastCoords })
+      });
+      if (!res.ok) throw new Error();
+      pushToast({ title: "Checked out", message: "We’ve logged your checkout.", variant: "success" });
+    } catch {
+      pushToast({ title: "Checkout failed", message: "Please try again.", variant: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    // Optimistically update UI
-    setJobs((prev) => prev.filter((j) => j.id !== selectedJob.id));
+  const handleNoteSubmit = async () => {
+    if (!selectedJob || !jobNote.trim()) return;
+    const helperId = getBuddyId();
+    if (!helperId) return;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/buddy/jobs/${selectedJob.id}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ helperId, note: jobNote })
+      });
+      if (!res.ok) throw new Error();
+      pushToast({ title: "Note sent", message: "Seller has been updated.", variant: "success" });
+      setJobNote("");
+    } catch {
+      pushToast({ title: "Note failed", message: "Unable to send note.", variant: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDispute = async () => {
+    if (!selectedJob || !disputeNote.trim()) return;
+    const helperId = getBuddyId();
+    if (!helperId) return;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/buddy/jobs/${selectedJob.id}/disputes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ helperId, note: disputeNote })
+      });
+      if (!res.ok) throw new Error();
+      pushToast({ title: "Dispute raised", message: "We’ll review this with the seller.", variant: "info" });
+      setDisputeNote("");
+    } catch {
+      pushToast({ title: "Dispute failed", message: "Unable to submit dispute.", variant: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -158,7 +297,18 @@ export default function BuddyPortalActiveJobsPage() {
                 </tr>
               </thead>
               <tbody>
-                {jobs.map((job) => (
+                {isLoading
+                  ? Array.from({ length: 4 }).map((_, index) => (
+                      <tr key={`skeleton-${index}`} className="animate-pulse">
+                        <td className="p-4"><div className="h-4 w-24 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-20 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-28 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-24 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-20 rounded bg-white/10" /></td>
+                        <td className="p-4"><div className="h-4 w-16 rounded bg-white/10" /></td>
+                      </tr>
+                    ))
+                  : jobs.map((job) => (
                   <tr
                     key={job.id}
                     onClick={() => setSelectedJob(job)}
@@ -192,7 +342,7 @@ export default function BuddyPortalActiveJobsPage() {
                 ))}
               </tbody>
             </table>
-            {jobs.length === 0 && (
+            {!isLoading && jobs.length === 0 && (
               <p className="p-8 text-center text-white/50">You have no active or scheduled jobs.</p>
             )}
           </div>
@@ -230,20 +380,60 @@ export default function BuddyPortalActiveJobsPage() {
               {selectedJob.currency} {selectedJob.payAmount}
             </h3>
 
-            <ul className="flex flex-col gap-4 text-sm text-white/70">
-              <li className="flex items-center gap-3">
-                <input type="checkbox" id="task1" className="h-5 w-5 accent-teal-400" />
-                <label htmlFor="task1">Confirm you arrived at the seller location</label>
-              </li>
-              <li className="flex items-center gap-3">
-                <input type="checkbox" id="task2" className="h-5 w-5 accent-teal-400" />
-                <label htmlFor="task2">Complete the requested prep or delivery task</label>
-              </li>
-              <li className="flex items-center gap-3">
-                <input type="checkbox" id="task3" className="h-5 w-5 accent-teal-400" />
-                <label htmlFor="task3">Confirm completion with seller</label>
-              </li>
-            </ul>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-colors disabled:opacity-60"
+                  onClick={handleCheckIn}
+                  disabled={isSubmitting}
+                >
+                  Check in
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-colors disabled:opacity-60"
+                  onClick={handleCheckOut}
+                  disabled={isSubmitting}
+                >
+                  Check out
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-white/60 uppercase tracking-widest">Job note</label>
+                <textarea
+                  className="min-h-[80px] rounded-xl border border-white/10 bg-white/5 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Add a quick update for the seller..."
+                  value={jobNote}
+                  onChange={(event) => setJobNote(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-colors disabled:opacity-60"
+                  onClick={handleNoteSubmit}
+                  disabled={isSubmitting || !jobNote.trim()}
+                >
+                  Send note
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-white/60 uppercase tracking-widest">Dispute</label>
+                <textarea
+                  className="min-h-[80px] rounded-xl border border-rose-400/30 bg-rose-500/5 text-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+                  placeholder="Describe the issue if there is a dispute..."
+                  value={disputeNote}
+                  onChange={(event) => setDisputeNote(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className="px-4 py-2.5 rounded-xl border border-rose-400/40 bg-rose-500/10 text-rose-100 font-semibold hover:bg-rose-500/20 transition-colors disabled:opacity-60"
+                  onClick={handleDispute}
+                  disabled={isSubmitting || !disputeNote.trim()}
+                >
+                  Raise dispute
+                </button>
+              </div>
+            </div>
 
             <button
               type="button"
@@ -251,6 +441,7 @@ export default function BuddyPortalActiveJobsPage() {
               className={`relative flex items-center ${
                 isSlideComplete ? "justify-end" : "justify-start"
               } w-full h-12 rounded-full border border-purple-500/70 bg-purple-500/10 text-white/90 uppercase text-[11px] tracking-widest font-bold overflow-hidden transition-all`}
+              disabled={isSubmitting}
             >
               <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 Click or swipe to complete

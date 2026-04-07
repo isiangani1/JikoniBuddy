@@ -59,6 +59,40 @@ export class BuddyPoolController {
     return this.buddyService.completeAssignment(id, dto);
   }
 
+  @Post("jobs/:id/checkin")
+  checkInJob(@Param("id") id: string, @Body("helperId") helperId?: string) {
+    return this.buddyService.checkInJob(id, helperId);
+  }
+
+  @Post("jobs/:id/checkout")
+  checkOutJob(@Param("id") id: string, @Body("helperId") helperId?: string) {
+    return this.buddyService.checkOutJob(id, helperId);
+  }
+
+  @Post("jobs/:id/notes")
+  addJobNote(
+    @Param("id") id: string,
+    @Body() body: { helperId: string; note: string }
+  ) {
+    return this.buddyService.addJobNote(id, body.helperId, body.note);
+  }
+
+  @Post("jobs/:id/disputes")
+  raiseDispute(
+    @Param("id") id: string,
+    @Body() body: { helperId: string; note: string }
+  ) {
+    return this.buddyService.raiseDispute(id, body.helperId, body.note);
+  }
+
+  @Post("jobs/:id/complete")
+  completeJob(
+    @Param("id") id: string,
+    @Body() body: { helperId: string; note?: string }
+  ) {
+    return this.buddyService.completeJob(id, body.helperId, body.note);
+  }
+
   @Post("ratings")
   createRating(@Body() dto: CreateRatingDto) {
     return this.buddyService.createRating(dto);
@@ -107,6 +141,53 @@ export class BuddyPoolController {
   @Get("users/:id/requests")
   getUserRequests(@Param("id") id: string) {
     return this.buddyService.getUserApplications(id);
+  }
+
+  @Get("users/:id/availability")
+  getUserAvailability(@Param("id") id: string) {
+    return this.buddyService.getUserAvailability(id);
+  }
+
+  @Put("users/:id/availability")
+  setUserAvailability(
+    @Param("id") id: string,
+    @Body() body: { slots: { dayOfWeek: number; startTime: string; endTime: string }[] }
+  ) {
+    return this.buddyService.setUserAvailability(id, body.slots ?? []);
+  }
+
+  @Get("users/:id/performance")
+  getPerformanceAnalytics(@Param("id") id: string) {
+    return this.buddyService.getPerformanceAnalytics(id);
+  }
+
+  @Get("users/:id/idle-suggestions")
+  getIdleSuggestions(@Param("id") _id: string) {
+    return this.buddyService.getIdleSuggestions();
+  }
+
+  @Get("users/:id/fraud-signals")
+  getFraudSignals(@Param("id") id: string) {
+    return this.buddyService.getFraudSignals(id);
+  }
+
+  @Get("users/:id/auto-accept")
+  getAutoAcceptRules(@Param("id") id: string) {
+    return this.buddyService.getAutoAcceptRules(id);
+  }
+
+  @Put("users/:id/auto-accept")
+  updateAutoAcceptRules(
+    @Param("id") id: string,
+    @Body()
+    body: {
+      autoAcceptEnabled?: boolean;
+      autoAcceptMaxKm?: number;
+      autoAcceptMaxResponseMinutes?: number;
+      autoAcceptMinRating?: number;
+    }
+  ) {
+    return this.buddyService.updateAutoAcceptRules(id, body);
   }
 
   @Post("users/:id/payouts")

@@ -466,6 +466,13 @@ export class PayoutService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  async getPayoutMethods(userId: string) {
+    return this.prisma.payoutMethod.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }]
+    });
+  }
+
   private async ensureWallet(userId: string, walletType: WalletType) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {

@@ -250,6 +250,11 @@ model HelperProfile {
   lng           Float?
   rating        Float    @default(5.0)
   jobsCompleted Int      @default(0)
+  avgResponseMinutes Float @default(30)
+  autoAcceptEnabled  Boolean @default(false)
+  autoAcceptMaxKm    Float   @default(5)
+  autoAcceptMaxResponseMinutes Float @default(30)
+  autoAcceptMinRating Float @default(4.5)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

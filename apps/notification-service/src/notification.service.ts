@@ -17,6 +17,9 @@ export class NotificationService {
     type: "payment" | "system";
     data?: Record<string, unknown>;
   }) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: params.userId }
+    });
     const record = await this.prisma.notification.create({
       data: {
         userId: params.userId,
@@ -35,6 +38,43 @@ export class NotificationService {
       createdAt: record.createdAt,
       data: record.data
     });
+    await this.dispatchChannels({
+      title: params.title,
+      message: params.message,
+      fcmToken: (params.data as any)?.fcmToken,
+      phone: (params.data as any)?.phone ?? user?.phone ?? undefined
+    });
     return record;
+  }
+
+  private async dispatchChannels(payload: {
+    title: string;
+    message: string;
+    fcmToken?: string;
+    phone?: string;
+  }) {
+    const hasFcm = Boolean(process.env.FCM_SERVER_KEY && payload.fcmToken);
+    if (hasFcm) {
+      console.log("[Notification] Push send requested", {
+        to: payload.fcmToken,
+        title: payload.title
+      });
+      return;
+    }
+
+    const hasSmsConfig =
+      Boolean(process.env.AFRICAS_TALKING_API_KEY) &&
+      Boolean(process.env.AFRICAS_TALKING_USERNAME) &&
+      Boolean(payload.phone);
+
+    if (hasSmsConfig) {
+      console.log("[Notification] SMS fallback requested", {
+        to: payload.phone,
+        message: payload.message
+      });
+      return;
+    }
+
+    console.log("[Notification] No delivery channel configured for user.");
   }
 }

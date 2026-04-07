@@ -38,7 +38,25 @@ export class BuddyPoolService {
 
     const matches = await this.matchHelpers(request.taskType, request.lat, request.lng);
     const helperIds = matches.slice(0, 5).map(h => h.id);
-    
+
+    const autoHelper = matches.find((helper: any) => {
+      const profile = helper.helperProfile;
+      if (!profile?.autoAcceptEnabled) return false;
+      const distanceOk = helper.distance <= (profile.autoAcceptMaxKm ?? 5);
+      const responseOk =
+        (profile.avgResponseMinutes ?? 30) <= (profile.autoAcceptMaxResponseMinutes ?? 30);
+      const ratingOk = (profile.rating ?? 5) >= (profile.autoAcceptMinRating ?? 4.5);
+      return distanceOk && responseOk && ratingOk;
+    });
+
+    if (autoHelper) {
+      await this.applyToRequest(request.id, {
+        helperId: autoHelper.id,
+        note: "Auto-accepted by helper rules."
+      });
+      return { request, matches, autoAccepted: autoHelper.id };
+    }
+
     helperIds.forEach((id) => {
       this.notifications.notifyHelper(
         id,
@@ -139,6 +157,18 @@ export class BuddyPoolService {
 
     const request = await this.prisma.buddyRequest.findUnique({ where: { id: requestId } });
     if (request) {
+      const responseMinutes = Math.max(
+        1,
+        (Date.now() - new Date(request.createdAt).getTime()) / (1000 * 60)
+      );
+      await this.prisma.helperProfile.update({
+        where: { userId: dto.helperId },
+        data: {
+          avgResponseMinutes: {
+            set: await this.getSmoothedResponse(dto.helperId, responseMinutes)
+          }
+        }
+      }).catch(() => null);
       await this.prisma.buddyRequest.update({
         where: { id: requestId },
         data: { status: "matched" }
@@ -146,13 +176,14 @@ export class BuddyPoolService {
       const existingJob = await this.prisma.job.findFirst({
         where: { requestId: request.id, buddyId: dto.helperId }
       });
+      let updatedJob;
       if (existingJob) {
-        await this.prisma.job.update({
+        updatedJob = await this.prisma.job.update({
           where: { id: existingJob.id },
           data: { status: "scheduled" }
         });
       } else {
-        await this.prisma.job.create({
+        updatedJob = await this.prisma.job.create({
           data: {
             buddyId: dto.helperId,
             sellerId: request.sellerId,
@@ -166,6 +197,9 @@ export class BuddyPoolService {
             status: "scheduled"
           }
         });
+      }
+      if (updatedJob) {
+        this.gateway.notifyBuddyJobStatus(dto.helperId, updatedJob);
       }
       this.notifications.notifySeller(
         request.sellerId,
@@ -541,6 +575,91 @@ export class BuddyPoolService {
     };
   }
 
+  async checkInJob(jobId: string, helperId?: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) return null;
+    if (helperId && job.buddyId !== helperId) return null;
+
+    const updated = await this.prisma.job.update({
+      where: { id: jobId },
+      data: { status: "in_progress" }
+    });
+
+    this.notifications.notifySeller(
+      updated.sellerId,
+      `Buddy checked in for ${updated.title}.`
+    );
+    this.gateway.notifyBuddyJobStatus(updated.buddyId, updated);
+    this.gateway.notifySellerJobStatus(updated.sellerId, updated);
+    return updated;
+  }
+
+  async checkOutJob(jobId: string, helperId?: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) return null;
+    if (helperId && job.buddyId !== helperId) return null;
+
+    const updated = await this.prisma.job.update({
+      where: { id: jobId },
+      data: { endTime: new Date() }
+    });
+
+    this.notifications.notifySeller(
+      updated.sellerId,
+      `Buddy checked out for ${updated.title}.`
+    );
+    this.gateway.notifyBuddyJobStatus(updated.buddyId, updated);
+    this.gateway.notifySellerJobStatus(updated.sellerId, updated);
+    return updated;
+  }
+
+  async addJobNote(jobId: string, helperId: string, note: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job || job.buddyId !== helperId) return null;
+
+    this.notifications.notifySeller(
+      job.sellerId,
+      `Job note from buddy: ${note}`
+    );
+    return { ok: true };
+  }
+
+  async raiseDispute(jobId: string, helperId: string, note: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job || job.buddyId !== helperId) return null;
+
+    this.notifications.notifySeller(
+      job.sellerId,
+      `Dispute raised by buddy: ${note}`
+    );
+    return { ok: true };
+  }
+
+  async completeJob(jobId: string, helperId: string, note?: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job || job.buddyId !== helperId) return null;
+
+    const updated = await this.prisma.job.update({
+      where: { id: jobId },
+      data: { status: "completed", endTime: new Date() }
+    });
+
+    this.notifications.notifySeller(
+      updated.sellerId,
+      note
+        ? `Buddy completed ${updated.title}. Note: ${note}`
+        : `Buddy completed ${updated.title}.`
+    );
+    this.gateway.notifyBuddyJobStatus(updated.buddyId, updated);
+    this.gateway.notifySellerJobStatus(updated.sellerId, updated);
+    this.broker.emit("buddy.completed", {
+      requestId: updated.requestId ?? updated.id,
+      helperId: updated.buddyId,
+      sellerId: updated.sellerId
+    });
+    return updated;
+  }
+
   private sumEarnings(items: { amount: number }[]) {
     return items.reduce((sum, item) => sum + item.amount, 0);
   }
@@ -562,19 +681,26 @@ export class BuddyPoolService {
       .map((profile) => {
         const distance = this.haversineDistance(profile.lat!, profile.lng!, lat, lng);
         const rating = profile.rating || 5.0;
+        const responseMinutes = profile.avgResponseMinutes ?? 30;
         
-        // Basic match score algorithm: 
-        // 50% rating, 30% distance (closer is better, max 10km), 20% experience (max 100 jobs)
+        // Match score algorithm:
+        // 40% rating, 30% distance (closer is better, max 10km), 20% response speed, 10% experience
         const normalizedDistance = Math.max(0, 10 - distance) / 10; 
         const normalizedExperience = Math.min(100, profile.jobsCompleted) / 100; 
+        const normalizedResponse = Math.max(0, 60 - responseMinutes) / 60;
         
-        const score = (rating / 5) * 50 + (normalizedDistance * 30) + (normalizedExperience * 20);
+        const score =
+          (rating / 5) * 40 +
+          normalizedDistance * 30 +
+          normalizedResponse * 20 +
+          normalizedExperience * 10;
         
         return {
           ...profile.user,
           helperProfile: profile,
           matchScore: score,
-          distance
+          distance,
+          responseMinutes
         };
       })
       .filter((helper) => helper.distance <= 10);
@@ -617,6 +743,132 @@ export class BuddyPoolService {
     return this.prisma.helperProfile.update({
       where: { userId: id },
       data: { isOnline }
+    });
+  }
+
+  private async getSmoothedResponse(userId: string, newMinutes: number) {
+    const profile = await this.prisma.helperProfile.findUnique({
+      where: { userId }
+    });
+    const current = profile?.avgResponseMinutes ?? 30;
+    const next = current * 0.7 + newMinutes * 0.3;
+    return Math.round(next * 10) / 10;
+  }
+
+  async getUserAvailability(userId: string) {
+    return this.prisma.userAvailability.findMany({
+      where: { userId },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }]
+    });
+  }
+
+  async setUserAvailability(
+    userId: string,
+    slots: { dayOfWeek: number; startTime: string; endTime: string }[]
+  ) {
+    await this.prisma.userAvailability.deleteMany({ where: { userId } });
+    if (!slots.length) return [];
+    return this.prisma.userAvailability.createMany({
+      data: slots.map((slot) => ({
+        userId,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime
+      }))
+    });
+  }
+
+  async getPerformanceAnalytics(userId: string) {
+    const [jobs, applications, profile, earnings] = await Promise.all([
+      this.prisma.job.findMany({ where: { buddyId: userId } }),
+      this.prisma.buddyApplication.findMany({ where: { helperId: userId } }),
+      this.prisma.helperProfile.findUnique({ where: { userId } }),
+      this.prisma.earning.findMany({ where: { userId } })
+    ]);
+
+    const totalApplications = applications.length;
+    const accepted = applications.filter((a) => a.status === "accepted").length;
+    const acceptanceRate = totalApplications ? Math.round((accepted / totalApplications) * 100) : 0;
+    const completed = jobs.filter((j) => j.status === "completed").length;
+    const cancelled = jobs.filter((j) => j.status === "cancelled").length;
+    const totalEarned = earnings.reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      acceptanceRate,
+      completedJobs: completed,
+      cancelledJobs: cancelled,
+      avgResponseMinutes: profile?.avgResponseMinutes ?? 30,
+      rating: profile?.rating ?? 5,
+      totalEarned
+    };
+  }
+
+  async getIdleSuggestions() {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent = await this.prisma.buddyRequest.findMany({
+      where: { createdAt: { gte: cutoff } },
+      select: { locationLabel: true }
+    });
+    const counts = new Map<string, number>();
+    recent.forEach((req) => {
+      counts.set(req.locationLabel, (counts.get(req.locationLabel) ?? 0) + 1);
+    });
+    const sorted = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([label, count]) => ({ label, count }));
+
+    if (sorted.length) return sorted;
+    return [
+      { label: "Westlands", count: 4 },
+      { label: "Kilimani", count: 3 },
+      { label: "CBD", count: 2 }
+    ];
+  }
+
+  async getFraudSignals(userId: string) {
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const cancelled = await this.prisma.job.count({
+      where: { buddyId: userId, status: "cancelled", createdAt: { gte: cutoff } }
+    });
+
+    return {
+      repeatedCancellations: cancelled >= 3,
+      cancellationCount: cancelled,
+      gpsSpoofing: false,
+      notes: cancelled >= 3 ? ["High cancellation count in last 30 days."] : []
+    };
+  }
+
+  async getAutoAcceptRules(userId: string) {
+    return this.prisma.helperProfile.findUnique({
+      where: { userId },
+      select: {
+        autoAcceptEnabled: true,
+        autoAcceptMaxKm: true,
+        autoAcceptMaxResponseMinutes: true,
+        autoAcceptMinRating: true
+      }
+    });
+  }
+
+  async updateAutoAcceptRules(
+    userId: string,
+    rules: {
+      autoAcceptEnabled?: boolean;
+      autoAcceptMaxKm?: number;
+      autoAcceptMaxResponseMinutes?: number;
+      autoAcceptMinRating?: number;
+    }
+  ) {
+    return this.prisma.helperProfile.update({
+      where: { userId },
+      data: {
+        autoAcceptEnabled: rules.autoAcceptEnabled ?? false,
+        autoAcceptMaxKm: rules.autoAcceptMaxKm ?? 5,
+        autoAcceptMaxResponseMinutes: rules.autoAcceptMaxResponseMinutes ?? 30,
+        autoAcceptMinRating: rules.autoAcceptMinRating ?? 4.5
+      }
     });
   }
 }
