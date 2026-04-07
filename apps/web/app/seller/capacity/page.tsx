@@ -30,7 +30,7 @@ export default function CapacityManager() {
       setSettings(data);
       return data;
     },
-    enabled: !!sellerId,
+    enabled: !!sellerId
   });
 
   const saveSettingsMutation = useMutation({
@@ -52,118 +52,134 @@ export default function CapacityManager() {
   const handleToggle = (field: keyof typeof settings) => {
     const nextSettings = { ...settings, [field]: !settings[field] };
     setSettings(nextSettings);
-    // Instant save for simple toggles feels snappy
     saveSettingsMutation.mutate(nextSettings);
   };
 
-  if (isLoading) return <p style={{ padding: "2rem", color: "white" }}>Loading capacity profile...</p>;
+  if (isLoading) return <p className="p-8 text-white">Loading capacity profile...</p>;
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <header style={{ marginBottom: "2rem" }}>
+    <main className="p-4 sm:p-6 max-w-3xl mx-auto flex flex-col gap-8">
+      <header className="flex flex-col gap-2">
         <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Logistics & Load</p>
-        <h1>Smart Capacity Engine</h1>
-        <p style={{ color: "rgba(255,255,255,0.6)", marginTop: "0.5rem" }}>
-          Control exactly how much load your kitchen can take. If the threshold is breached, the engine will either stop orders or automatically broadcast an SOS to the Buddy Pool based on your preferences.
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-white m-0">Smart Capacity Engine</h1>
+        <p className="text-white/60 text-sm sm:text-base">
+          Control exactly how much load your kitchen can take. If the threshold is breached, the engine will either
+          stop orders or automatically broadcast an SOS to the Buddy Pool based on your preferences.
         </p>
       </header>
 
-      <section style={{ background: "rgba(255,255,255,0.05)", padding: "2rem", borderRadius: "12px", marginBottom: "2rem" }}>
-        <h3 style={{ margin: "0 0 1rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1rem" }}>Working Hours</h3>
-        <p style={{ margin: "0 0 1rem", color: "rgba(255,255,255,0.6)" }}>Define the hours your kitchen is visibly online and accepting incoming orders.</p>
-        
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "0.85rem", color: "rgba(255,255,255,0.6)", marginBottom: "0.5rem" }}>Kitchen Opens At</label>
-            <input 
-              type="time" 
-              value={settings.operatingHoursOpen} 
-              onChange={e => setSettings({...settings, operatingHoursOpen: e.target.value})}
-              style={{ width: "100%", padding: "1rem", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", color: "white", borderRadius: "8px", fontSize: "1.2rem", colorScheme: "dark" }} 
+      <section className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 flex flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-semibold text-white m-0">Working Hours</h3>
+          <p className="text-white/60 text-sm">
+            Define the hours your kitchen is visibly online and accepting incoming orders.
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-wider text-white/60 font-semibold">Kitchen Opens At</label>
+            <input
+              type="time"
+              value={settings.operatingHoursOpen}
+              onChange={(e) => setSettings({ ...settings, operatingHoursOpen: e.target.value })}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white focus:border-teal-400/60 focus:outline-none"
             />
           </div>
-          <div>
-            <label style={{ display: "block", fontSize: "0.85rem", color: "rgba(255,255,255,0.6)", marginBottom: "0.5rem" }}>Kitchen Closes At</label>
-            <input 
-              type="time" 
-              value={settings.operatingHoursClose} 
-              onChange={e => setSettings({...settings, operatingHoursClose: e.target.value})}
-              style={{ width: "100%", padding: "1rem", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", color: "white", borderRadius: "8px", fontSize: "1.2rem", colorScheme: "dark" }} 
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-wider text-white/60 font-semibold">Kitchen Closes At</label>
+            <input
+              type="time"
+              value={settings.operatingHoursClose}
+              onChange={(e) => setSettings({ ...settings, operatingHoursClose: e.target.value })}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white focus:border-teal-400/60 focus:outline-none"
             />
           </div>
         </div>
       </section>
-      
-      <section style={{ background: "rgba(255,255,255,0.05)", padding: "2rem", borderRadius: "12px", marginBottom: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+
+      <section className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 style={{ margin: "0 0 0.5rem" }}>Live Store Status</h3>
-            <p style={{ margin: "0", color: "rgba(255,255,255,0.6)" }}>Manually pause all incoming requests right now.</p>
+            <h3 className="text-lg font-semibold text-white m-0">Live Store Status</h3>
+            <p className="text-white/60 text-sm">Manually pause all incoming requests right now.</p>
           </div>
-          <button 
+          <button
             onClick={() => handleToggle("isAcceptingOrders")}
-            style={{ 
-              padding: "0.75rem 1.5rem", borderRadius: "8px", fontWeight: "bold", border: "none", cursor: "pointer",
-              background: settings.isAcceptingOrders ? "#2dd4bf" : "rgba(255,255,255,0.1)",
-              color: settings.isAcceptingOrders ? "#1a1026" : "white",
-              transition: "all 0.2s ease"
-            }}
+            className={`px-4 py-2 rounded-xl font-semibold transition-colors ${
+              settings.isAcceptingOrders
+                ? "bg-teal-400 text-[#1a1026]"
+                : "bg-white/10 text-white"
+            }`}
           >
             {settings.isAcceptingOrders ? "ACCEPTING ORDERS" : "PAUSED"}
           </button>
         </div>
-        
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "2rem", display: "grid", gap: "2rem" }}>
-          <div>
-            <h3 style={{ margin: "0 0 0.5rem" }}>Max Orders Per Time Slot</h3>
-            <p style={{ margin: "0 0 1rem", color: "rgba(255,255,255,0.6)" }}>If active orders exceed this number within a rolling hour, capacity is breached.</p>
-            <input 
-              type="number" 
-              value={settings.maxOrdersPerHour} 
-              onChange={e => setSettings({...settings, maxOrdersPerHour: parseInt(e.target.value) || 20})}
-              style={{ width: "100%", padding: "1rem", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", color: "white", borderRadius: "8px", fontSize: "1.2rem" }} 
+
+        <div className="grid gap-6 border-t border-white/10 pt-6">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-base font-semibold text-white m-0">Max Orders Per Time Slot</h3>
+            <p className="text-white/60 text-sm">
+              If active orders exceed this number within a rolling hour, capacity is breached.
+            </p>
+            <input
+              type="number"
+              value={settings.maxOrdersPerHour}
+              onChange={(e) => setSettings({ ...settings, maxOrdersPerHour: parseInt(e.target.value) || 20 })}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white focus:border-teal-400/60 focus:outline-none"
             />
           </div>
 
-          <div>
-            <h3 style={{ margin: "0 0 0.5rem" }}>Prep Time Buffer (Minutes)</h3>
-            <p style={{ margin: "0 0 1rem", color: "rgba(255,255,255,0.6)" }}>How much extra cushion time to add to each order globally.</p>
-            <input 
-              type="number" 
-              value={settings.prepBufferMinutes} 
-              onChange={e => setSettings({...settings, prepBufferMinutes: parseInt(e.target.value) || 15})}
-              style={{ width: "100%", padding: "1rem", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", color: "white", borderRadius: "8px", fontSize: "1.2rem" }} 
+          <div className="flex flex-col gap-2">
+            <h3 className="text-base font-semibold text-white m-0">Prep Time Buffer (Minutes)</h3>
+            <p className="text-white/60 text-sm">How much extra cushion time to add to each order globally.</p>
+            <input
+              type="number"
+              value={settings.prepBufferMinutes}
+              onChange={(e) => setSettings({ ...settings, prepBufferMinutes: parseInt(e.target.value) || 15 })}
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white focus:border-teal-400/60 focus:outline-none"
             />
           </div>
         </div>
       </section>
 
-      <section style={{ background: settings.autoBuddyScaling ? "rgba(124, 92, 255, 0.1)" : "rgba(255,255,255,0.05)", border: `1px solid ${settings.autoBuddyScaling ? "#7C5CFF" : "transparent"}`, padding: "2rem", borderRadius: "12px", marginBottom: "2rem", transition: "all 0.3s ease" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
-          <div style={{ flex: "1 1 300px" }}>
-            <h3 style={{ margin: "0 0 0.5rem", color: settings.autoBuddyScaling ? "#d8c5ff" : "white" }}>Auto-Trigger Buddy Pool</h3>
-            <p style={{ margin: "0", color: "rgba(255,255,255,0.8)" }}>
-              When "Max Orders" is breached, the system will instantly publish an SOS request to nearby available Buddies instead of rejecting customer orders. Scale elastically without manual intervention!
+      <section
+        className={`rounded-2xl p-6 sm:p-8 flex flex-col gap-4 border transition-colors ${
+          settings.autoBuddyScaling
+            ? "bg-purple-500/10 border-purple-400/40"
+            : "bg-white/5 border-white/10"
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="max-w-lg">
+            <h3 className={`text-lg font-semibold m-0 ${settings.autoBuddyScaling ? "text-purple-200" : "text-white"}`}>
+              Auto-Trigger Buddy Pool
+            </h3>
+            <p className="text-white/70 text-sm mt-2">
+              When “Max Orders” is breached, the system will instantly publish an SOS request to nearby available
+              Buddies instead of rejecting customer orders.
             </p>
           </div>
-          <button 
+          <button
             onClick={() => handleToggle("autoBuddyScaling")}
-            style={{ 
-              padding: "0.75rem 1.5rem", borderRadius: "8px", fontWeight: "bold", border: "none", cursor: "pointer",
-              background: settings.autoBuddyScaling ? "#7C5CFF" : "rgba(255,255,255,0.2)",
-              color: "white",
-              transition: "all 0.2s ease"
-            }}
+            className={`px-4 py-2 rounded-xl font-semibold transition-colors ${
+              settings.autoBuddyScaling
+                ? "bg-purple-500 text-white"
+                : "bg-white/10 text-white"
+            }`}
           >
             {settings.autoBuddyScaling ? "ENABLED" : "DISABLED"}
           </button>
         </div>
       </section>
 
-      <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ width: "100%", padding: "1rem" }} onClick={() => saveSettingsMutation.mutate(settings)} disabled={saveSettingsMutation.isPending}>
+      <button
+        className="w-full px-5 py-3 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity"
+        onClick={() => saveSettingsMutation.mutate(settings)}
+        disabled={saveSettingsMutation.isPending}
+      >
         {saveSettingsMutation.isPending ? "Saving..." : "Save Smart Logic Thresholds"}
       </button>
-
     </main>
   );
 }

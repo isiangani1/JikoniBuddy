@@ -47,6 +47,10 @@ export default function BuyerCheckoutPage() {
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ label: string; lat: number; lng: number }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(buyerState.checkout);
@@ -64,13 +68,61 @@ export default function BuyerCheckoutPage() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        setGeoError(null);
         const label = `Current location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`;
         setMapCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        handleChange({ deliveryLocation: label });
+        handleChange({
+          deliveryLocation: label,
+          deliveryLat: position.coords.latitude,
+          deliveryLng: position.coords.longitude
+        });
       },
-      () => undefined
+      () => setGeoError("We could not access your location. You can search or pin it on the map.")
     );
   }, [buyerState.addresses.length, draft.deliveryLocation]);
+
+  useEffect(() => {
+    if (draft.deliveryLat !== null && draft.deliveryLng !== null) {
+      setMapCoords({ lat: draft.deliveryLat, lng: draft.deliveryLng });
+    }
+  }, [draft.deliveryLat, draft.deliveryLng]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    if (searchQuery.trim().length < 3) return;
+    const timeout = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/geocode/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        const data = await res.json();
+        setSearchResults(data?.results ?? []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  const applyLocation = (label: string, lat: number, lng: number) => {
+    handleChange({ deliveryLocation: label, deliveryLat: lat, deliveryLng: lng });
+    setMapCoords({ lat, lng });
+    setSearchResults([]);
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      const data = await res.json();
+      return data?.label ?? null;
+    } catch {
+      return null;
+    }
+  };
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -78,12 +130,20 @@ export default function BuyerCheckoutPage() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const label = `Current location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`;
-        setMapCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        handleChange({ deliveryLocation: label });
+      async (position) => {
+        setGeoError(null);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const label =
+          (await reverseGeocode(lat, lng)) ??
+          `Current location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+        setMapCoords({ lat, lng });
+        handleChange({ deliveryLocation: label, deliveryLat: lat, deliveryLng: lng });
       },
-      () => alert("Unable to fetch current location.")
+      () => {
+        setGeoError("Unable to fetch current location.");
+        alert("Unable to fetch current location.");
+      }
     );
   };
 
@@ -92,7 +152,11 @@ export default function BuyerCheckoutPage() {
       click: (event) => {
         const { lat, lng } = event.latlng;
         setMapCoords({ lat, lng });
-        handleChange({ deliveryLocation: `Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+        handleChange({
+          deliveryLocation: `Pin at ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+          deliveryLat: lat,
+          deliveryLng: lng
+        });
       }
     });
     return mapCoords ? <Marker position={[mapCoords.lat, mapCoords.lng]} /> : null;
@@ -316,7 +380,9 @@ export default function BuyerCheckoutPage() {
                     const address = buyerState.addresses.find((item: SavedAddress) => item.label === label);
                     handleChange({
                       deliveryAddressLabel: label,
-                      deliveryLocation: address ? address.location : draft.deliveryLocation
+                      deliveryLocation: address ? address.location : draft.deliveryLocation,
+                      deliveryLat: address?.lat ?? null,
+                      deliveryLng: address?.lng ?? null
                     });
                   }}
                   className="w-full p-3.5 bg-black/30 border border-white/10 text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium appearance-none"
@@ -331,15 +397,43 @@ export default function BuyerCheckoutPage() {
               </label>
               
               <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-white/70 uppercase tracking-widest text-[11px]">Search address</span>
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search for a place or landmark"
+                  className="w-full p-3.5 bg-black/30 border border-white/10 text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium"
+                />
+                {isSearching ? (
+                  <p className="text-xs text-white/50">Searching...</p>
+                ) : null}
+                {searchResults.length ? (
+                  <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/40 p-3">
+                    {searchResults.map((result) => (
+                      <button
+                        key={`${result.lat}-${result.lng}`}
+                        type="button"
+                        onClick={() => applyLocation(result.label, result.lat, result.lng)}
+                        className="text-left text-sm text-white/80 hover:text-white"
+                      >
+                        {result.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </label>
+
+              <label className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-white/70 uppercase tracking-widest text-[11px]">Delivery location</span>
                 <input
                   value={draft.deliveryLocation}
                   onChange={(event) =>
-                    handleChange({ deliveryLocation: event.target.value })
+                    handleChange({ deliveryLocation: event.target.value, deliveryLat: null, deliveryLng: null })
                   }
                   placeholder="Enter delivery location"
                   className="w-full p-3.5 bg-black/30 border border-white/10 text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium"
                 />
+                {geoError ? <p className="text-xs text-orange-200">{geoError}</p> : null}
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
@@ -361,7 +455,7 @@ export default function BuyerCheckoutPage() {
                     <MapContainer
                       center={[mapCoords?.lat ?? -1.286389, mapCoords?.lng ?? 36.817223]}
                       zoom={13}
-                      style={{ height: "240px", width: "100%" }}
+                      className="h-[240px] w-full"
                     >
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <MapPicker />
@@ -451,7 +545,9 @@ export default function BuyerCheckoutPage() {
                           const address = buyerState.addresses.find((item: SavedAddress) => item.label === label);
                           handleChange({
                             deliveryAddressLabel: label,
-                            deliveryLocation: address ? address.location : draft.deliveryLocation
+                            deliveryLocation: address ? address.location : draft.deliveryLocation,
+                            deliveryLat: address?.lat ?? null,
+                            deliveryLng: address?.lng ?? null
                           });
                         }}
                         className="w-full p-3.5 bg-black/30 border border-white/10 text-[15px] text-white rounded-xl focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-medium"
@@ -491,7 +587,7 @@ export default function BuyerCheckoutPage() {
                         <MapContainer
                           center={[mapCoords?.lat ?? -1.286389, mapCoords?.lng ?? 36.817223]}
                           zoom={13}
-                          style={{ height: "220px", width: "100%" }}
+                          className="h-[220px] w-full"
                         >
                           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                           <MapPicker />

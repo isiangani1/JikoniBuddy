@@ -73,14 +73,9 @@ export default function BuyerOrderTrackingPage({
 
   useEffect(() => {
     if (!order) return;
-
-    // Stub for Pusher wiring:
-    // Later replace with: subscribe to `private-order.${order.id}` and update on events.
-    const interval = window.setInterval(() => {
-      setVersion((v) => v + 1);
-    }, 3000);
-
-    return () => window.clearInterval(interval);
+    const handleUpdate = () => setVersion((v) => v + 1);
+    window.addEventListener("orders-updated", handleUpdate);
+    return () => window.removeEventListener("orders-updated", handleUpdate);
   }, [order]);
 
   useEffect(() => {
@@ -278,7 +273,7 @@ export default function BuyerOrderTrackingPage({
                   driverPosition?.lng ?? 36.82
                 ]}
                 zoom={13}
-                style={{ height: "100%", width: "100%", background: "#0e0814" }}
+                className="h-full w-full bg-[#0e0814]"
                 scrollWheelZoom={false}
               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="brightness-90 contrast-90 invert hue-rotate-180" />
@@ -300,8 +295,12 @@ export default function BuyerOrderTrackingPage({
                 </Marker>
                 <Marker
                   position={[
-                    trackingData?.destination?.lat ?? -1.295,
-                    trackingData?.destination?.lng ?? 36.805
+                    trackingData?.destination?.lat ??
+                      order.checkout.deliveryLat ??
+                      -1.295,
+                    trackingData?.destination?.lng ??
+                      order.checkout.deliveryLng ??
+                      36.805
                   ]}
                 >
                   <Popup>Dropoff</Popup>
@@ -317,8 +316,12 @@ export default function BuyerOrderTrackingPage({
                       driverPosition?.lng ?? 36.82
                     ],
                     [
-                      trackingData?.destination?.lat ?? -1.295,
-                      trackingData?.destination?.lng ?? 36.805
+                      trackingData?.destination?.lat ??
+                        order.checkout.deliveryLat ??
+                        -1.295,
+                      trackingData?.destination?.lng ??
+                        order.checkout.deliveryLng ??
+                        36.805
                     ]
                   ]}
                   pathOptions={{ color: '#7C5CFF', weight: 4, dashArray: '10, 10' }}
@@ -332,7 +335,7 @@ export default function BuyerOrderTrackingPage({
             </div>
 
             <div className="relative flex flex-col rounded-[20px] overflow-hidden border border-white/12 bg-white/5 p-6 h-[400px]">
-              <h3 className="text-lg font-bold text-white m-0 mb-1 border-b border-white/10 pb-4">Rider status (stub)</h3>
+              <h3 className="text-lg font-bold text-white m-0 mb-1 border-b border-white/10 pb-4">Rider status</h3>
               <p className="text-white/40 text-[11px] uppercase tracking-wider mt-0 mb-6 font-bold">Channel: order:{order.id}</p>
               
               <ul className="flex flex-col gap-5 m-0 p-0 list-none flex-1 overflow-y-auto pr-2">

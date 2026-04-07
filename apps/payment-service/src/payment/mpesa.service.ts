@@ -21,22 +21,33 @@ export class MpesaService {
     if (this.cachedToken && this.cachedToken.expiresAt > now) {
       return this.cachedToken.token;
     }
+    const stubEnabled = (process.env.DARAJA_STUB ?? "").toLowerCase() === "true";
     const baseUrl = process.env.DARAJA_BASE_URL ?? "https://sandbox.safaricom.co.ke";
     const key = process.env.DARAJA_CONSUMER_KEY ?? "";
     const secret = process.env.DARAJA_CONSUMER_SECRET ?? "";
+    if (!key || !secret) {
+      if (stubEnabled) return "stub-token";
+      throw new Error("Daraja credentials are not configured.");
+    }
     const auth = Buffer.from(`${key}:${secret}`).toString("base64");
 
-    const res = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
-      headers: { Authorization: `Basic ${auth}` }
-    });
-    if (!res.ok) {
-      throw new Error("Failed to fetch Daraja token.");
+    try {
+      const res = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
+        headers: { Authorization: `Basic ${auth}` }
+      });
+      if (!res.ok) {
+        if (stubEnabled) return "stub-token";
+        throw new Error("Failed to fetch Daraja token.");
+      }
+      const data = (await res.json()) as DarajaTokenResponse;
+      const expiresIn = Number(data.expires_in ?? 3600);
+      const token = data.access_token;
+      this.cachedToken = { token, expiresAt: now + (expiresIn - 60) * 1000 };
+      return token;
+    } catch (error) {
+      if (stubEnabled) return "stub-token";
+      throw error;
     }
-    const data = (await res.json()) as DarajaTokenResponse;
-    const expiresIn = Number(data.expires_in ?? 3600);
-    const token = data.access_token;
-    this.cachedToken = { token, expiresAt: now + (expiresIn - 60) * 1000 };
-    return token;
   }
 
   async requestStkPush({
@@ -51,7 +62,27 @@ export class MpesaService {
     const shortCode = process.env.DARAJA_STK_SHORTCODE ?? "";
     const passkey = process.env.DARAJA_STK_PASSKEY ?? "";
     const callbackUrl = process.env.DARAJA_STK_CALLBACK_URL ?? "";
+    const stubEnabled = (process.env.DARAJA_STUB ?? "").toLowerCase() === "true";
     if (!shortCode || !passkey || !callbackUrl) {
+      if (stubEnabled) {
+        return {
+          ok: true,
+          status: 200,
+          data: {
+            MerchantRequestID: `stub-${Date.now()}`,
+            CheckoutRequestID: reference,
+            ResponseCode: "0",
+            ResponseDescription: "Stubbed STK push accepted.",
+            CustomerMessage: "STK Push initiated (stub)."
+          },
+          payload: {
+            amount,
+            phone,
+            reference,
+            stub: true
+          }
+        };
+      }
       throw new Error("Daraja STK credentials are not configured.");
     }
 

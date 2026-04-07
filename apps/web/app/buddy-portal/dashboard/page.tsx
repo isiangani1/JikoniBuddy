@@ -150,7 +150,7 @@ export default function BuddyPortalDashboard() {
             </div>
           </div>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: '40%' }}></div>
+            <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full w-[40%]"></div>
           </div>
         </div>
 

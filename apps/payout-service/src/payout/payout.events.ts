@@ -27,4 +27,12 @@ export class PayoutEventsController {
       await this.payoutService.handleOrderCancelled(data.orderId);
     }
   }
+
+  @EventPattern("payment.refunded")
+  async handlePaymentRefunded(
+    @Payload() data: { orderId?: string }
+  ) {
+    if (!data.orderId) return;
+    await this.payoutService.handleOrderRefunded(data.orderId);
+  }
 }

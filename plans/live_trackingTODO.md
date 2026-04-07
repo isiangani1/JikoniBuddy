@@ -21,16 +21,16 @@ Real-time location streaming system for helpers (buddies) and dashboards.
 - [ ] Implement "Last Seen" logic for connectivity drops
 
 ### Phase 3: Helper (Buddy) Integration
-- [ ] Implement `watchPosition` logic in the Buddy portal
-- [ ] Add throttling (send every 3-5 seconds or >10m movement)
+- [x] Implement `watchPosition` logic in the Buddy portal
+- [x] Add throttling (send every 3-5 seconds or >10m movement)
 - [ ] Handle backgrounding and permission errors
 
 ### Phase 4: Frontend (Seller/Buyer) Integration
-- [ ] Replace polling in `Orders` page with Socket.IO listeners
-- [ ] Smooth marker transitions (interpolation) for the map
-- [ ] Add "Rider Offline" visual states
+- [x] Replace polling in `Orders` page with Socket.IO listeners
+- [x] Smooth marker transitions (interpolation) for the map
+- [x] Add "Rider Offline" visual states
 
 ### Phase 5: Optimization & Polish
-- [ ] Implement Redis expiration (30s TTL for active tracking)
+- [x] Implement Redis expiration (30s TTL for active tracking)
 - [ ] Persistent route history (optional)
 - [ ] Load testing for concurrent deliveries

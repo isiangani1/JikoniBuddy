@@ -32,7 +32,8 @@ export class NotificationService {
       title: record.title,
       message: record.message,
       type: record.type,
-      createdAt: record.createdAt
+      createdAt: record.createdAt,
+      data: record.data
     });
     return record;
   }

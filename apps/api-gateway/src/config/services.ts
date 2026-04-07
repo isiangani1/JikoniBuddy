@@ -74,6 +74,16 @@ export const services: Record<string, ServiceConfig> = {
     baseUrl: env.MESSAGING_SERVICE_URL ?? "http://127.0.0.1:4014",
     healthPath: env.MESSAGING_SERVICE_HEALTH ?? defaultHealthPath
   },
+  chat: {
+    key: "chat",
+    baseUrl: env.CHAT_SERVICE_URL ?? "http://127.0.0.1:4017",
+    healthPath: env.CHAT_SERVICE_HEALTH ?? defaultHealthPath
+  },
+  refund: {
+    key: "refund",
+    baseUrl: env.REFUND_SERVICE_URL ?? "http://127.0.0.1:4018",
+    healthPath: env.REFUND_SERVICE_HEALTH ?? defaultHealthPath
+  },
   admin: {
     key: "admin",
     baseUrl: env.ADMIN_SERVICE_URL ?? "http://127.0.0.1:4015",

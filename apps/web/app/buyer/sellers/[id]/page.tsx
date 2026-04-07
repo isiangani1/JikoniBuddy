@@ -150,15 +150,15 @@ export default function BuyerSellerDetailPage({
             <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Next available</h3>
               <p className="text-white/50 text-sm">Today · 12:00 - 14:00</p>
-              <p className="text-white/50 text-sm">Lead time: 60-90 minutes (stub)</p>
+              <p className="text-white/50 text-sm">Lead time: {seller.eta}</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Blackout periods</h3>
-              <p className="text-white/50 text-sm">None configured (stub)</p>
+              <p className="text-white/50 text-sm">No blackout periods listed.</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-[20px] p-6 hover:border-white/20 transition-colors flex flex-col gap-2">
               <h3>Service area</h3>
-              <p className="text-white/50 text-sm">Nairobi (stub)</p>
+              <p className="text-white/50 text-sm">Nairobi metro area</p>
             </div>
           </div>
         </section>

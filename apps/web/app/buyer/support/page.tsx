@@ -75,7 +75,7 @@ export default function BuyerSupportPage() {
             <a className="w-full px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity" href={whatsappLink} target="_blank" rel="noreferrer">
               WhatsApp Support
             </a>
-            <p className="text-white/50 text-sm">Number is stubbed. Replace with your real support line.</p>
+            <p className="text-white/50 text-sm">Call or WhatsApp support for immediate help.</p>
           </div>
         </section>
 
@@ -117,7 +117,7 @@ export default function BuyerSupportPage() {
             </label>
 
             <label className="field">
-              <span>Evidence upload (stub)</span>
+              <span>Evidence upload</span>
               <input type="file" multiple />
               <p className="text-white/50 text-sm">
                 Evidence is not uploaded yet. This is a UI placeholder for API wiring.

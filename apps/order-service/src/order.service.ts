@@ -48,7 +48,9 @@ export class OrderService {
     // Trigger state machine cascades
     this.brokerClient.emit('order.status_updated', {
       orderId: order.id,
-      status: order.status
+      status: order.status,
+      buyerId: order.buyerId,
+      sellerId: order.sellerId
     });
 
     if (order.status === 'completed') {

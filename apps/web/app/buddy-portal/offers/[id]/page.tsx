@@ -171,7 +171,7 @@ export default function BuddyRequestDetailPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-wrap gap-3 mt-4" style={{ marginTop: "1.2rem" }}>
+        <div className="flex flex-wrap gap-3 mt-5">
           <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" type="button" onClick={handleAccept}>
             Accept request
           </button>

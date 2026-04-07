@@ -273,6 +273,49 @@ export class PayoutService implements OnModuleInit, OnModuleDestroy {
     return { reversed: transactions.length };
   }
 
+  async handleOrderRefunded(orderId: string) {
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        type: "earning",
+        reference: { startsWith: `order_${orderId}` },
+        status: { in: ["pending", "success"] }
+      },
+      include: { wallet: true }
+    });
+
+    if (!transactions.length) return { reversed: 0 };
+
+    await this.prisma.$transaction(
+      transactions.flatMap((txn: Transaction) => [
+        this.prisma.wallet.update({
+          where: { id: txn.walletId },
+          data:
+            txn.status === "pending"
+              ? { pendingBalance: { decrement: txn.amount } }
+              : { balance: { decrement: txn.amount } }
+        }),
+        this.prisma.transaction.update({
+          where: { id: txn.id },
+          data: { status: "reversed" }
+        }),
+        this.prisma.transaction.create({
+          data: {
+            userId: txn.userId,
+            walletId: txn.walletId,
+            type: "refund",
+            amount: -Math.abs(txn.amount),
+            currency: txn.currency,
+            status: "success",
+            reference: `refund_${orderId}`,
+            metadata: { orderId, source: "payment.refunded" }
+          }
+        })
+      ])
+    );
+
+    return { reversed: transactions.length };
+  }
+
   async settlePendingBalances() {
     const delayHours = Number(process.env.SETTLEMENT_DELAY_HOURS ?? 24);
     const cutoff = new Date(Date.now() - delayHours * 60 * 60 * 1000);

@@ -8,6 +8,8 @@ import { FailureHandlingService } from './failure.service';
 import { SellerRealtimeGateway } from './realtime/seller-realtime.gateway';
 import { MetricsController } from './metrics.controller';
 import { MetricsService } from './metrics.service';
+import { AvailabilityController } from './availability.controller';
+import { AvailabilityService } from './availability.service';
 
 @Module({
   imports: [
@@ -15,11 +17,11 @@ import { MetricsService } from './metrics.service';
       {
         name: 'MESSAGE_BROKER',
         transport: Transport.TCP,
-        options: { host: '127.0.0.1', port: 4001 },
+        options: { host: '127.0.0.1', port: Number(process.env.MESSAGE_BROKER_PORT ?? 4012) },
       },
     ]),
   ],
-  controllers: [AppController, EventsController, HealthController, MetricsController],
-  providers: [AppService, FailureHandlingService, SellerRealtimeGateway, MetricsService],
+  controllers: [AppController, EventsController, HealthController, MetricsController, AvailabilityController],
+  providers: [AppService, FailureHandlingService, SellerRealtimeGateway, MetricsService, AvailabilityService],
 })
 export class AppModule {}

@@ -12,7 +12,7 @@ import { NotificationGateway } from "./notification.gateway";
       {
         name: "MESSAGE_BROKER",
         transport: Transport.TCP,
-        options: { host: "127.0.0.1", port: 4001 }
+        options: { host: "127.0.0.1", port: Number(process.env.MESSAGE_BROKER_PORT ?? 4012) }
       }
     ])
   ],

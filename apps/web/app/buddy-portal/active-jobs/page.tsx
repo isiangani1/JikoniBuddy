@@ -45,7 +45,7 @@ const fallbackJobs: JobRow[] = [
 export default function BuddyPortalActiveJobsPage() {
   const [jobs, setJobs] = useState<JobRow[]>(fallbackJobs);
   const [selectedJob, setSelectedJob] = useState<JobRow | null>(null);
-  const [sliderPos, setSliderPos] = useState(4); // For the UI slider
+  const [isSlideComplete, setIsSlideComplete] = useState(false);
   const lastSentRef = useRef(0);
 
   useEffect(() => {
@@ -93,9 +93,8 @@ export default function BuddyPortalActiveJobsPage() {
     };
   }, [selectedJob]);
 
-  const handleSliderDrag = (e: React.TouchEvent | React.MouseEvent) => {
-    // A simple mock for sliding to complete
-    setSliderPos(200);
+  const handleSliderDrag = () => {
+    setIsSlideComplete(true);
     setTimeout(() => {
       completeJob();
     }, 300);
@@ -106,7 +105,7 @@ export default function BuddyPortalActiveJobsPage() {
     const socketUrl =
       process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
     const socket = io(`${socketUrl}/ws/buddy`, { transports: ["websocket"] });
-    
+
     socket.emit("buddy.job_completed", {
       requestId: selectedJob.id,
       helperId: getBuddyId(),
@@ -116,19 +115,23 @@ export default function BuddyPortalActiveJobsPage() {
 
     alert("Awesome! Job marked as complete. The Seller has been notified to approve your M-Pesa payout.");
     setSelectedJob(null);
-    setSliderPos(4);
-    
+    setIsSlideComplete(false);
+
     // Optimistically update UI
-    setJobs(prev => prev.filter(j => j.id !== selectedJob.id));
+    setJobs((prev) => prev.filter((j) => j.id !== selectedJob.id));
   };
 
   return (
-    <div style={{ display: "flex", width: "100%", position: "relative" }}>
-      <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0" style={{ flex: 1, paddingRight: selectedJob ? "400px" : "0", transition: "padding 0.3s" }}>
+    <div className="relative flex w-full">
+      <main
+        className={`p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col gap-8 min-w-0 transition-[padding] duration-300 ${
+          selectedJob ? "pr-[400px]" : ""
+        }`}
+      >
         <section className="flex flex-col lg:flex-row gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
           <div className="flex-1 flex flex-col gap-2 justify-center">
             <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0"></p>
-            <h1>Active Jobs</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white m-0">Active Jobs</h1>
             <div className="flex flex-wrap gap-3 mt-4">
               <Link className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" href="/buddy-portal/my-requests">
                 View requests
@@ -141,37 +144,47 @@ export default function BuddyPortalActiveJobsPage() {
         </section>
 
         <section className="flex flex-col gap-6 animate-in fade-in duration-500">
-          <h2>Active job list</h2>
+          <h2 className="text-xl font-bold text-white m-0">Active job list</h2>
           <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden">
-            <table className="w-full text-left text-sm text-white" style={{ width: "100%" }}>
-              <thead>
+            <table className="w-full text-left text-sm text-white">
+              <thead className="bg-white/5 text-white/70 uppercase tracking-wider text-[11px]">
                 <tr>
-                  <th>Job</th>
-                  <th>Seller</th>
-                  <th>Start time</th>
-                  <th>Location</th>
-                  <th>Pay</th>
-                  <th>Status</th>
+                  <th className="p-4">Job</th>
+                  <th className="p-4">Seller</th>
+                  <th className="p-4">Start time</th>
+                  <th className="p-4">Location</th>
+                  <th className="p-4">Pay</th>
+                  <th className="p-4">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {jobs.map((job) => (
-                  <tr 
-                    key={job.id} 
+                  <tr
+                    key={job.id}
                     onClick={() => setSelectedJob(job)}
-                    style={{ cursor: "pointer", background: selectedJob?.id === job.id ? "rgba(124, 92, 255, 0.1)" : "transparent" }}
+                    className={`cursor-pointer transition-colors ${
+                      selectedJob?.id === job.id ? "bg-purple-500/10" : "hover:bg-white/5"
+                    }`}
                   >
-                    <td data-label="Job" style={{ fontWeight: "bold", color: "#2dd4bf" }}>{job.title}</td>
-                    <td data-label="Seller">{job.seller}</td>
-                    <td data-label="Start time">
+                    <td className="p-4 text-teal-300 font-bold" data-label="Job">
+                      {job.title}
+                    </td>
+                    <td className="p-4" data-label="Seller">{job.seller}</td>
+                    <td className="p-4" data-label="Start time">
                       {new Date(job.startTime).toLocaleString()}
                     </td>
-                    <td data-label="Location">{job.locationLabel}</td>
-                    <td data-label="Pay">
+                    <td className="p-4" data-label="Location">{job.locationLabel}</td>
+                    <td className="p-4" data-label="Pay">
                       {job.currency} {job.payAmount.toLocaleString()}
                     </td>
-                    <td data-label="Status">
-                      <span className="status-pill" style={{ background: job.status === 'in_progress' ? 'rgba(45,212,191,0.2)' : 'rgba(255,255,255,0.1)' }}>
+                    <td className="p-4" data-label="Status">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider border ${
+                          job.status === "in_progress"
+                            ? "bg-teal-500/15 text-teal-200 border-teal-400/40"
+                            : "bg-white/10 text-white/60 border-white/20"
+                        }`}
+                      >
                         {job.status.replace("_", " ")}
                       </span>
                     </td>
@@ -179,99 +192,75 @@ export default function BuddyPortalActiveJobsPage() {
                 ))}
               </tbody>
             </table>
-            {jobs.length === 0 && <p style={{ padding: "2rem", textAlign: "center", color: "rgba(255,255,255,0.5)" }}>You have no active or scheduled jobs.</p>}
+            {jobs.length === 0 && (
+              <p className="p-8 text-center text-white/50">You have no active or scheduled jobs.</p>
+            )}
           </div>
         </section>
       </main>
 
-      {/* Side Panel Split View */}
       {selectedJob && (
-        <aside style={{ 
-          position: "fixed", right: 0, top: "80px", bottom: 0, width: "400px", 
-          background: "#12021f", borderLeft: "1px solid rgba(255,255,255,0.1)", 
-          display: "flex", flexDirection: "column", zIndex: 10,
-          boxShadow: "-10px 0 30px rgba(0,0,0,0.5)",
-          animation: "slideInRight 0.3s ease-out"
-        }}>
-          <div style={{ 
-            flex: 1, 
-            background: "linear-gradient(135deg, #1a1026 0%, #12021f 100%)", 
-            position: "relative",
-            overflow: "hidden"
-          }}>
-            {/* Subtle Map Grid/Scan Effect */}
-            <div style={{ 
-              position: "absolute", 
-              inset: 0, 
-              backgroundImage: "radial-gradient(circle, rgba(45, 212, 191, 0.1) 1px, transparent 1px)", 
-              backgroundSize: "30px 30px" 
-            }}></div>
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center"
-            }}>
-              <div style={{ 
-                width: "60px", 
-                height: "60px", 
-                borderRadius: "50%", 
-                border: "2px solid #2DD4BF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 1rem",
-                animation: "pulse 2s infinite"
-              }}>
-                <span style={{ fontSize: "1.5rem" }}>📍</span>
-              </div>
-              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.9rem", fontWeight: "bold", letterSpacing: "1px" }}>CONNECTING TO LIVE GPS...</p>
+        <aside className="fixed right-0 top-[80px] bottom-0 w-[360px] sm:w-[400px] bg-[#12021f] border-l border-white/10 flex flex-col z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+          <div className="relative flex-1 overflow-hidden bg-gradient-to-br from-[#1a1026] to-[#12021f]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(45,212,191,0.12)_1px,transparent_1px)] bg-[length:30px_30px] opacity-60" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-4">
+              <div className="flex items-center justify-center h-16 w-16 rounded-full border-2 border-teal-400 text-2xl">📍</div>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/60 font-bold">Connecting to live GPS...</p>
             </div>
           </div>
-          
-          <div style={{ padding: "2rem", background: "rgba(18, 2, 31, 0.95)", borderTop: "1px solid #7C5CFF", flex: 1, display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+
+          <div className="flex flex-col gap-6 p-8 bg-[#12021f]/95 border-t border-purple-500/40">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 style={{ margin: "0 0 0.5rem" }}>{selectedJob.title}</h2>
-                <p style={{ margin: 0, color: "rgba(255,255,255,0.6)" }}>{selectedJob.seller} • {selectedJob.locationLabel}</p>
+                <h2 className="text-2xl font-bold text-white m-0 mb-2">{selectedJob.title}</h2>
+                <p className="m-0 text-white/60 text-sm">
+                  {selectedJob.seller} • {selectedJob.locationLabel}
+                </p>
               </div>
-              <button 
-                onClick={() => setSelectedJob(null)} 
-                style={{ background: "transparent", border: "none", color: "white", fontSize: "1.5rem", cursor: "pointer" }}
-              >×</button>
+              <button
+                type="button"
+                className="text-white/70 hover:text-white text-2xl"
+                onClick={() => setSelectedJob(null)}
+              >
+                ×
+              </button>
             </div>
 
-            <h3 style={{ color: "#2dd4bf", margin: "0 0 1.5rem", fontSize: "1.5rem" }}>{selectedJob.currency} {selectedJob.payAmount}</h3>
+            <h3 className="text-teal-300 text-2xl font-bold m-0">
+              {selectedJob.currency} {selectedJob.payAmount}
+            </h3>
 
-            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 auto", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <li style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <input type="checkbox" id="task1" style={{ width: "20px", height: "20px" }} />
-                <label htmlFor="task1">Arrive at {selectedJob.seller}'s kitchen</label>
+            <ul className="flex flex-col gap-4 text-sm text-white/70">
+              <li className="flex items-center gap-3">
+                <input type="checkbox" id="task1" className="h-5 w-5 accent-teal-400" />
+                <label htmlFor="task1">Confirm you arrived at the seller location</label>
               </li>
-              <li style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <input type="checkbox" id="task2" style={{ width: "20px", height: "20px" }} />
-                <label htmlFor="task2">Complete required shift duties</label>
+              <li className="flex items-center gap-3">
+                <input type="checkbox" id="task2" className="h-5 w-5 accent-teal-400" />
+                <label htmlFor="task2">Complete the requested prep or delivery task</label>
               </li>
-              <li style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <input type="checkbox" id="task3" style={{ width: "20px", height: "20px" }} />
-                <label htmlFor="task3">Clean workstation and clock out</label>
+              <li className="flex items-center gap-3">
+                <input type="checkbox" id="task3" className="h-5 w-5 accent-teal-400" />
+                <label htmlFor="task3">Confirm completion with seller</label>
               </li>
             </ul>
 
-            <div 
-              className="swipe-to-complete" 
-              style={{ background: "rgba(124, 92, 255, 0.1)", border: "1px solid #7C5CFF", marginTop: "2rem", cursor: "pointer" }}
+            <button
+              type="button"
               onClick={handleSliderDrag}
+              className={`relative flex items-center ${
+                isSlideComplete ? "justify-end" : "justify-start"
+              } w-full h-12 rounded-full border border-purple-500/70 bg-purple-500/10 text-white/90 uppercase text-[11px] tracking-widest font-bold overflow-hidden transition-all`}
             >
-              <span style={{ color: "#fff", zIndex: 1 }}>CLICK OR SWIPE TO COMPLETE</span>
-              <div 
-                className="swipe-slider" 
-                style={{ background: "#7C5CFF", left: `${sliderPos}px`, transition: "left 0.3s" }}
-              >
-                ➔
-              </div>
-            </div>
+              <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                Click or swipe to complete
+              </span>
+              <span
+                className={`h-10 w-10 rounded-full bg-purple-500 shadow-lg shadow-purple-500/30 transition-transform ${
+                  isSlideComplete ? "translate-x-0" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
         </aside>
       )}

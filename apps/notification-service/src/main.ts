@@ -12,9 +12,10 @@ async function bootstrap() {
   dotenv.config({ path: localEnv, override: true });
 
   const app = await NestFactory.create(AppModule);
+  const brokerPort = Number(process.env.MESSAGE_BROKER_PORT ?? 4012);
   app.connectMicroservice({
     transport: Transport.TCP,
-    options: { host: "127.0.0.1", port: 4001 }
+    options: { host: "127.0.0.1", port: brokerPort }
   });
   app.enableCors();
   await app.startAllMicroservices();

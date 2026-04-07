@@ -5,7 +5,7 @@
 ---
 
 ## Phase 0 — Audit & Guardrails
-- [ ] Inventory global styles (`apps/web/app/globals.css`) and map to Tailwind equivalents
+- [x] Inventory global styles (`apps/web/app/globals.css`) and map to Tailwind equivalents
 - [ ] Identify reusable patterns (cards, buttons, tables, badges, navs, modals)
 - [ ] Create a do‑not‑break list (critical pages: landing, buyer portal, buddy portal, seller dashboard)
 - [ ] Define responsive breakpoints and mobile‑first layout rules
@@ -17,11 +17,11 @@
 - [x] Add Tailwind base/styles to `globals.css`
 - [x] Define initial design tokens in `tailwind.config.mjs`:
   - [x] Colors (brand, background, accents)
-  - [ ] Typography scale
-  - [ ] Spacing scale
+  - [x] Typography scale
+  - [x] Spacing scale
   - [x] Shadows, radii
-  - [ ] Gradients
-- [ ] Create Tailwind component helpers (via `@layer components`)
+  - [x] Gradients
+- [x] Create Tailwind component helpers (component wrappers)
 
 ---
 
@@ -31,6 +31,8 @@
 - [ ] Inputs / forms / dropdowns
 - [ ] Badges / pills / status
 - [x] Layout shells (header, footer)
+- [x] Replace inline styles in buyer/seller/buddy shells with Tailwind classes
+- [x] Remove legacy class dependencies in portal shells/dashboards
 
 ---
 
@@ -63,6 +65,7 @@
 - [ ] Tablet layout pass (768px)
 - [ ] Desktop layout pass (1024px+)
 - [ ] Accessibility checks (focus states, contrast)
+- [ ] (In progress) Mobile QA sweep: seller analytics/support/profile/capacity, buyer checkout, buddy active-jobs
 
 ---
 

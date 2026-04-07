@@ -14,6 +14,8 @@ export type SellerProfile = {
   availability: string;
   services: string[];
   products: SellerProduct[];
+  lat: number;
+  lng: number;
 };
 
 export const sellers: SellerProfile[] = [
@@ -25,6 +27,8 @@ export const sellers: SellerProfile[] = [
     priceRange: "KES 350-900",
     availability: "Available Now",
     services: ["Meal Prep", "Office Bites"],
+    lat: -1.2865,
+    lng: 36.8175,
     products: [
       {
         id: "thx-1",
@@ -54,6 +58,8 @@ export const sellers: SellerProfile[] = [
     priceRange: "KES 400-1100",
     availability: "Limited Slots",
     services: ["Picnic Snacks", "Catering"],
+    lat: -1.2923,
+    lng: 36.8069,
     products: [
       {
         id: "ss-1",
@@ -83,6 +89,8 @@ export const sellers: SellerProfile[] = [
     priceRange: "KES 500-1300",
     availability: "Available Now",
     services: ["Office Bites", "Catering"],
+    lat: -1.2798,
+    lng: 36.8222,
     products: [
       {
         id: "nk-1",

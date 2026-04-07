@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PortalGuard from "@/components/PortalGuard";
-import { loadBuyerState } from "@/data/buyerStorage";
+import { loadBuyerState, updateOrderStatus } from "@/data/buyerStorage";
+import { io } from "socket.io-client";
 import CartDrawer from "@/components/CartDrawer";
 
 export default function BuyerLayout({
@@ -37,6 +38,27 @@ export default function BuyerLayout({
     const storedRole = sessionStorage.getItem("jb_role");
     if (storedName) setUserName(storedName);
     else if (storedRole) setUserName(storedRole.charAt(0).toUpperCase() + storedRole.slice(1));
+  }, []);
+
+  useEffect(() => {
+    const userId = sessionStorage.getItem("jb_user_id");
+    if (!userId) return;
+    const socketUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketUrl}/ws/notification`, {
+      query: { userId },
+      transports: ["websocket"]
+    });
+
+    socket.on("notification", (payload: any) => {
+      if (payload?.data?.orderId && payload?.data?.status) {
+        updateOrderStatus(payload.data.orderId, payload.data.status);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const handleLogout = () => {

@@ -16,6 +16,8 @@ export type DeliveryQuote = {
 export type CheckoutDraft = {
   deliveryLocation: string;
   deliveryAddressLabel: string;
+  deliveryLat: number | null;
+  deliveryLng: number | null;
   scheduledDate: string;
   timeWindow: string;
   orderNotes: string;
@@ -56,6 +58,8 @@ export type SavedAddress = {
   id: string;
   label: string;
   location: string;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type BuyerProfile = {
@@ -139,6 +143,8 @@ const defaultState: StoredState = {
   checkout: {
     deliveryLocation: "",
     deliveryAddressLabel: "",
+    deliveryLat: null,
+    deliveryLng: null,
     scheduledDate: "",
     timeWindow: "",
     orderNotes: "",
@@ -214,12 +220,14 @@ export function updateBuyerProfile(update: Partial<BuyerProfile>) {
   saveBuyerState({ ...state, profile: { ...state.profile, ...update } });
 }
 
-export function addSavedAddress(input: { label: string; location: string }): SavedAddress {
+export function addSavedAddress(input: { label: string; location: string; lat?: number | null; lng?: number | null }): SavedAddress {
   const state = loadBuyerState();
   const stored: SavedAddress = {
     id: `addr-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     label: input.label,
-    location: input.location
+    location: input.location,
+    lat: input.lat ?? null,
+    lng: input.lng ?? null
   };
   saveBuyerState({ ...state, addresses: [stored, ...state.addresses] });
   return stored;
@@ -407,6 +415,9 @@ export function placeOrder(order: Omit<BuyerOrder, "createdAt">): BuyerOrder {
 
   const state = loadBuyerState();
   saveBuyerState({ ...state, lastOrderId: stored.id });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("orders-updated"));
+  }
 
   return stored;
 }
@@ -420,6 +431,9 @@ export function updateOrderStatus(orderId: string, status: BuyerOrderStatus) {
   const orders = loadOrders();
   const next = orders.map((entry) => (entry.id === orderId ? { ...entry, status } : entry));
   saveOrders(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("orders-updated"));
+  }
 
   pushNotification({
     type: "order_status",
@@ -436,6 +450,9 @@ export function updateOrderPayment(orderId: string, update: Partial<PaymentRecor
     entry.id === orderId ? { ...entry, payment: { ...entry.payment, ...update } } : entry
   );
   saveOrders(next);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("orders-updated"));
+  }
 
   const nextStatus = update.status ?? current?.payment.status;
   if (nextStatus) {

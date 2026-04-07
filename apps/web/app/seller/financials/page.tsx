@@ -105,7 +105,7 @@ export default function SellerFinancialsPage() {
             <span className="w-10 h-10 rounded-xl bg-teal-400/10 text-teal-400 flex items-center justify-center text-xl">💸</span>
             <h3 className="text-xl font-bold text-white m-0">Recent Inflow</h3>
           </div>
-          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2" style={{ maxHeight: "500px" }}>
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2 max-h-[500px]">
             {earnings.map((p: any) => (
               <div key={p.id} className="flex justify-between items-center bg-black/20 hover:bg-white/5 transition-colors p-4 rounded-xl border border-white/5">
                 <div className="flex flex-col gap-1">
@@ -134,7 +134,7 @@ export default function SellerFinancialsPage() {
             <span className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl">🏦</span>
             <h3 className="text-xl font-bold text-white m-0">Payout History</h3>
           </div>
-          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2" style={{ maxHeight: "500px" }}>
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2 max-h-[500px]">
              {withdrawals.map((e: any) => (
                 <div key={e.id} className="flex justify-between items-center bg-white/5 hover:bg-white/10 transition-colors p-4 rounded-xl border border-white/5">
                   <div className="flex flex-col gap-1">

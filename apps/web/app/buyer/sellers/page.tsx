@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { sellers } from "@/data/sellers";
+import { MapContainer, Marker, TileLayer, Popup } from "react-leaflet";
 
 type SortKey = "rating" | "eta" | "price";
 
@@ -25,6 +26,28 @@ export default function BuyerSellerListingPage() {
   const [availability, setAvailability] = useState<"all" | "available_now">("all");
   const [sortKey, setSortKey] = useState<SortKey>("rating");
   const [showMap, setShowMap] = useState(false);
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let active = true;
+    Promise.all(
+      sellers.map(async (seller) => {
+        try {
+          const res = await fetch(`/api/seller/availability?sellerId=${seller.id}`);
+          const data = await res.json();
+          return [seller.id, data?.profile?.isAcceptingOrders !== false] as const;
+        } catch {
+          return [seller.id, true] as const;
+        }
+      })
+    ).then((entries) => {
+      if (!active) return;
+      setAvailabilityMap(Object.fromEntries(entries));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -35,10 +58,11 @@ export default function BuyerSellerListingPage() {
         seller.services.some((service) => service.toLowerCase().includes(q)) ||
         seller.products.some((product) => product.name.toLowerCase().includes(q));
 
+      const isAccepting = availabilityMap[seller.id] !== false;
       const matchesAvailability =
         availability === "all"
           ? true
-          : seller.availability.toLowerCase().includes("available");
+          : isAccepting;
 
       return matchesQuery && matchesAvailability;
     });
@@ -53,6 +77,10 @@ export default function BuyerSellerListingPage() {
 
     return sorted;
   }, [availability, query, sortKey]);
+
+  const mapCenter = filtered.length
+    ? [filtered[0].lat, filtered[0].lng]
+    : [-1.286389, 36.817223];
 
   return (
     <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-8 min-w-0">
@@ -147,12 +175,24 @@ export default function BuyerSellerListingPage() {
         {showMap ? (
           <section className="animate-in fade-in zoom-in-95 duration-300">
             <h2 className="text-xl font-bold text-white mb-4">Map view</h2>
-            <div className="bg-white/5 border border-white/10 rounded-[24px] p-12 text-center h-[300px] flex flex-col items-center justify-center gap-4">
-              <span className="text-5xl opacity-40">🗺️</span>
-              <h3 className="text-lg font-bold text-white m-0">Map placeholder</h3>
-              <p className="text-white/50 text-sm m-0">
-                Add Google Maps here later (buyer location + seller markers).
-              </p>
+            <div className="bg-white/5 border border-white/10 rounded-[24px] overflow-hidden h-[320px]">
+              <MapContainer
+                center={mapCenter as [number, number]}
+                zoom={13}
+                className="h-full w-full bg-[#0e0814]"
+                scrollWheelZoom={false}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {filtered.map((seller) => (
+                  <Marker key={seller.id} position={[seller.lat, seller.lng]}>
+                    <Popup>
+                      <strong>{seller.name}</strong>
+                      <br />
+                      {seller.availability}
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
             </div>
           </section>
         ) : null}
@@ -183,7 +223,13 @@ export default function BuyerSellerListingPage() {
                 </div>
                 
                 <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-center">
-                  <p className={`text-[11px] font-bold uppercase tracking-wider m-0 ${seller.availability.includes("available") ? "text-green-400" : "text-white/40"}`}>{seller.availability}</p>
+                  <p
+                    className={`text-[11px] font-bold uppercase tracking-wider m-0 ${
+                      availabilityMap[seller.id] === false ? "text-white/40" : "text-green-400"
+                    }`}
+                  >
+                    {availabilityMap[seller.id] === false ? "Paused" : seller.availability}
+                  </p>
                   <span className="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 text-xs font-bold border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all">View menu</span>
                 </div>
               </Link>

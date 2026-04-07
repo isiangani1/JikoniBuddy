@@ -9,7 +9,9 @@ const services = [
   { name: "menu", url: process.env.MENU_SERVICE_URL ?? "http://127.0.0.1:4006", path: "/" },
   { name: "payout", url: process.env.PAYOUT_SERVICE_URL ?? "http://127.0.0.1:4016", path: "/health" },
   { name: "notification", url: process.env.NOTIFICATION_SERVICE_URL ?? "http://127.0.0.1:4011", path: "/health" },
-  { name: "payment", url: process.env.PAYMENT_SERVICE_URL ?? "http://127.0.0.1:4008", path: "/health" }
+  { name: "payment", url: process.env.PAYMENT_SERVICE_URL ?? "http://127.0.0.1:4008", path: "/health" },
+  { name: "chat", url: process.env.CHAT_SERVICE_URL ?? "http://127.0.0.1:4017", path: "/health" },
+  { name: "refund", url: process.env.REFUND_SERVICE_URL ?? "http://127.0.0.1:4018", path: "/health" }
 ];
 
 const timeoutMs = 3000;
@@ -43,9 +45,9 @@ async function main() {
   const failed = results.filter((r) => !r.ok);
   results.forEach((r) => {
     if (r.ok) {
-      console.log(`✅ ${r.name} ${r.status} ${r.url}`);
+      console.log(`ON ${r.name} ${r.status} ${r.url}`);
     } else {
-      console.log(`❌ ${r.name} ${r.status} ${r.url} ${r.error ?? ""}`);
+      console.log(`OFF ${r.name} ${r.status} ${r.url} ${r.error ?? ""}`);
     }
   });
   if (failed.length) {

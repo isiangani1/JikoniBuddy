@@ -3,7 +3,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import dynamic from "next/dynamic";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 
 type OrderStatus = "pending" | "accepted" | "preparing" | "ready" | "completed";
 
@@ -18,15 +20,9 @@ interface Order {
   assignedBuddyId?: string;
 }
 
-// Map Component imports (will be lazy loaded if needed, or used directly if libraries are available)
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix for default marker icons in Leaflet
 const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41]
 });
@@ -35,31 +31,65 @@ L.Marker.prototype.options.icon = DefaultIcon;
 function OrderManagementBoardInner() {
   const queryClient = useQueryClient();
   const [sellerId, setSellerId] = useState<string | null>(null);
+  const [activeChatOrder, setActiveChatOrder] = useState<Order | null>(null);
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [driverPosition, setDriverPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [targetPosition, setTargetPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
+  const [isTrackingStale, setIsTrackingStale] = useState(false);
 
   useEffect(() => {
     setSellerId(localStorage.getItem("jb_session") || "test-seller-1");
   }, []);
 
-  const [activeChatOrder, setActiveChatOrder] = useState<Order | null>(null);
-  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [trackingData, setTrackingData] = useState<any>(null);
+  useEffect(() => {
+    if (!sellerId) return;
+    const socketUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketUrl}/ws/seller`, { transports: ["websocket"] });
+    socket.emit("seller:join", { sellerId });
+
+    socket.on("order.updated", (payload: Order) => {
+      queryClient.setQueryData(["sellerOrders", sellerId], (old: Order[] = []) => {
+        const existing = old.find((order) => order.id === payload.id);
+        if (existing) {
+          return old.map((order) => (order.id === payload.id ? { ...order, ...payload } : order));
+        }
+        return [payload, ...old];
+      });
+    });
+
+    return () => socket.disconnect();
+  }, [sellerId, queryClient]);
 
   useEffect(() => {
     if (!activeTrackingOrder) {
       setTrackingData(null);
+      setDriverPosition(null);
+      setTargetPosition(null);
+      setLastUpdateAt(null);
       return;
     }
+
     const orderId = activeTrackingOrder.id;
     fetch(`/api/seller/orders/${orderId}/tracking`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setTrackingData(data))
+      .then((data) => {
+        setTrackingData(data);
+        if (data?.driver?.lat && data?.driver?.lng) {
+          const initial = { lat: data.driver.lat, lng: data.driver.lng };
+          setDriverPosition(initial);
+          setTargetPosition(initial);
+          setLastUpdateAt(Date.now());
+        }
+      })
       .catch(() => null);
 
     const socketUrl =
-      process.env.NEXT_PUBLIC_BUDDY_SERVICE_URL ?? "http://localhost:4005";
-    const socket = io(socketUrl);
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? "http://127.0.0.1:4000";
+    const socket = io(`${socketUrl}/ws/buddy`, { transports: ["websocket"] });
     socket.emit("tracking:join", { orderId });
     socket.on("tracking:update", (payload) => {
       setTrackingData((prev: any) => ({
@@ -67,14 +97,45 @@ function OrderManagementBoardInner() {
         driver: { lat: payload.lat, lng: payload.lng },
         status: prev?.status ?? "in_progress"
       }));
+      setTargetPosition({ lat: payload.lat, lng: payload.lng });
+      setLastUpdateAt(Date.now());
     });
+
     return () => {
       socket.emit("tracking:leave", { orderId });
       socket.disconnect();
     };
   }, [activeTrackingOrder]);
 
-  // Fetch Orders from DB explicitly
+  useEffect(() => {
+    if (!targetPosition) return;
+    const start = driverPosition ?? targetPosition;
+    const duration = 900;
+    let raf = 0;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const lat = start.lat + (targetPosition.lat - start.lat) * progress;
+      const lng = start.lng + (targetPosition.lng - start.lng) * progress;
+      setDriverPosition({ lat, lng });
+      if (progress < 1) {
+        raf = requestAnimationFrame(step);
+      }
+    };
+
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [targetPosition]);
+
+  useEffect(() => {
+    if (!lastUpdateAt) return;
+    const interval = window.setInterval(() => {
+      setIsTrackingStale(Date.now() - lastUpdateAt > 15000);
+    }, 2000);
+    return () => window.clearInterval(interval);
+  }, [lastUpdateAt]);
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["sellerOrders", sellerId],
     queryFn: async () => {
@@ -83,12 +144,11 @@ function OrderManagementBoardInner() {
       if (!res.ok) throw new Error("Network error");
       return res.json() as Promise<Order[]>;
     },
-    enabled: !!sellerId,
-    refetchInterval: 5000 // Poll database for updates every 5s
+    enabled: !!sellerId
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string, status: OrderStatus }) => {
+    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
       const res = await fetch(`/api/seller/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -98,8 +158,8 @@ function OrderManagementBoardInner() {
       return res.json();
     },
     onSuccess: (_, variables) => {
-      queryClient.setQueryData(["sellerOrders", sellerId], (old: Order[] = []) => 
-        old.map(o => o.id === variables.orderId ? { ...o, status: variables.status } : o)
+      queryClient.setQueryData(["sellerOrders", sellerId], (old: Order[] = []) =>
+        old.map((o) => (o.id === variables.orderId ? { ...o, status: variables.status } : o))
       );
     }
   });
@@ -117,11 +177,11 @@ function OrderManagementBoardInner() {
 
   const advanceStatus = (order: Order) => {
     const flows: Record<OrderStatus, OrderStatus | null> = {
-      "pending": "accepted",
-      "accepted": "preparing",
-      "preparing": "ready",
-      "ready": "completed",
-      "completed": null
+      pending: "accepted",
+      accepted: "preparing",
+      preparing: "ready",
+      ready: "completed",
+      completed: null
     };
     const next = flows[order.status];
     if (next) updateStatusMutation.mutate({ orderId: order.id, status: next });
@@ -135,23 +195,24 @@ function OrderManagementBoardInner() {
   ];
 
   const sellerPosition = trackingData?.seller ?? { lat: -1.286389, lng: 36.817223 };
-  const driverPosition = trackingData?.driver ?? { lat: -1.29, lng: 36.825 };
+  const driverLive = driverPosition ?? { lat: -1.29, lng: 36.825 };
   const destinationPosition =
     trackingData?.destination ?? { lat: -1.295, lng: 36.805, label: "Buyer" };
 
-  if (isLoading) return <p style={{ padding: "2rem" }}>Loading real-time order queue...</p>;
+  if (isLoading) return <p className="p-8 text-white/70">Loading real-time order queue...</p>;
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <header style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <main className="p-4 sm:p-6 lg:p-8">
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
           <p className="text-purple-300 font-bold tracking-widest uppercase text-xs m-0">Operations</p>
-          <h1>Order Kanban Board</h1>
-          <p style={{ color: "rgba(255,255,255,0.6)", marginTop: "0.5rem" }}>Live Database Stream Tracker. Drag or move cards to update Postgres instantly.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white m-0">Order Kanban Board</h1>
+          <p className="text-white/60 text-sm mt-2">
+            Live database stream tracker. Drag or move cards to update Postgres instantly.
+          </p>
         </div>
-        <button 
-          className="base" 
-          style={{ background: "#2dd4bf", color: "#1a1026", padding: "0.6rem 1.2rem", border: "none", fontWeight: "bold" }}
+        <button
+          className="px-4 py-2 rounded-xl bg-[#2dd4bf] text-[#1a1026] font-bold hover:opacity-90 transition-opacity"
           onClick={() => generateOrderMutation.mutate()}
           disabled={generateOrderMutation.isPending}
         >
@@ -159,51 +220,74 @@ function OrderManagementBoardInner() {
         </button>
       </header>
 
-      <div className="kanban-board">
-        {columns.map(col => (
-          <div key={col.status} style={{ background: "rgba(255,255,255,0.05)", padding: "1rem", borderRadius: "12px", minHeight: "60vh" }}>
-            <h3 style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "0.5rem", marginBottom: "1rem" }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {columns.map((col) => (
+          <div key={col.status} className="bg-white/5 border border-white/10 rounded-2xl p-4 min-h-[60vh]">
+            <h3 className="text-white/80 font-semibold border-b border-white/10 pb-2 mb-4">
               {col.label}
             </h3>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {orders.filter(o => o.status === col.status).map(order => (
-                <div key={order.id} style={{ background: "#211a30", padding: "1rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                    <span style={{ fontWeight: "bold" }}>{order.id}</span>
-                    <span style={{ color: "#2dd4bf" }}>KES {order.totalAmount}</span>
-                  </div>
-                  <p style={{ margin: "0 0 0.5rem", color: "rgba(255,255,255,0.8)" }}>{order.buyerName}</p>
-                  <ul style={{ margin: "0 0 1rem", paddingLeft: "1.2rem", color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
-                    {order.items.map((item, idx) => (
-                      <li key={idx}>{item.quantity}x {item.name}</li>
-                    ))}
-                  </ul>
-                  {col.status !== "ready" ? (
-                    <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ width: "100%", padding: "0.5rem", marginBottom: "0.5rem" }} onClick={() => advanceStatus(order)}>
-                      Move to {col.status === 'pending' ? 'Accepted' : col.status === 'accepted' ? 'Preparing' : 'Ready'}
-                    </button>
-                  ) : (
-                    <button className="base" style={{ width: "100%", padding: "0.5rem", background: "#7C5CFF", color: "#fff", border: "none", marginBottom: "0.5rem" }} onClick={() => advanceStatus(order)}>
-                      Mark Completed
-                    </button>
-                  )}
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-                    <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" style={{ fontSize: "0.8rem", padding: "0.4rem" }} onClick={() => setActiveChatOrder(order)}>💬 Message</button>
-                    {(order.status === 'ready' || order.status === 'completed') && (
-                       <button className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" style={{ fontSize: "0.8rem", padding: "0.4rem" }} onClick={() => setActiveTrackingOrder(order)}>📍 Track</button>
+
+            <div className="flex flex-col gap-4">
+              {orders
+                .filter((o) => o.status === col.status)
+                .map((order) => (
+                  <div
+                    key={order.id}
+                    className="bg-[#211a30] border border-white/10 rounded-xl p-4 flex flex-col gap-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">{order.id}</span>
+                      <span className="text-teal-300 font-semibold">KES {order.totalAmount}</span>
+                    </div>
+                    <p className="text-white/80 text-sm m-0">{order.buyerName}</p>
+                    <ul className="text-white/60 text-xs list-disc pl-5">
+                      {order.items.map((item, idx) => (
+                        <li key={idx}>
+                          {item.quantity}x {item.name}
+                        </li>
+                      ))}
+                    </ul>
+                    {col.status !== "ready" ? (
+                      <button
+                        className="w-full px-4 py-2 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity"
+                        onClick={() => advanceStatus(order)}
+                      >
+                        Move to {col.status === "pending" ? "Accepted" : col.status === "accepted" ? "Preparing" : "Ready"}
+                      </button>
+                    ) : (
+                      <button
+                        className="w-full px-4 py-2 rounded-xl bg-purple-500 text-white font-semibold hover:bg-purple-400 transition-colors"
+                        onClick={() => advanceStatus(order)}
+                      >
+                        Mark Completed
+                      </button>
                     )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        className="px-3 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs font-semibold"
+                        onClick={() => setActiveChatOrder(order)}
+                      >
+                        💬 Message
+                      </button>
+                      {(order.status === "ready" || order.status === "completed") && (
+                        <button
+                          className="px-3 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs font-semibold"
+                          onClick={() => setActiveTrackingOrder(order)}
+                        >
+                          📍 Track
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {orders.filter(o => o.status === col.status).length === 0 && (
-                <div style={{ color: "rgba(255,255,255,0.4)", textAlign: "center", fontSize: "0.9rem", padding: "2rem 0" }}>
-                  <p>Queue empty</p>
+                ))}
+
+              {orders.filter((o) => o.status === col.status).length === 0 && (
+                <div className="text-white/40 text-center text-sm py-8">
+                  <p className="m-0">Queue empty</p>
                   {col.status === "pending" && (
-                    <button 
-                      className="px-5 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-semibold transition-colors whitespace-nowrap backdrop-blur" 
-                      style={{ marginTop: "1rem", fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}
+                    <button
+                      className="mt-3 px-4 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs font-semibold"
                       onClick={() => generateOrderMutation.mutate()}
                     >
                       Create Test Order
@@ -216,88 +300,119 @@ function OrderManagementBoardInner() {
         ))}
       </div>
 
-      {/* Chat Overlay */}
-       {activeChatOrder && (
-         <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "350px", background: "#1a1026", borderLeft: "1px solid rgba(255,255,255,0.1)", zIndex: 1000, display: "flex", flexDirection: "column", animation: "slideIn 0.3s ease-out" }}>
-           <header style={{ padding: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-             <div>
-               <h3 style={{ margin: 0 }}>{activeChatOrder?.buyerName}</h3>
-               <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>Order #{activeChatOrder?.id.slice(-6)}</p>
-             </div>
-             <button style={{ background: "none", border: "none", color: "white", cursor: "pointer", fontSize: "1.5rem" }} onClick={() => setActiveChatOrder(null)}>&times;</button>
-           </header>
-           
-           <div style={{ flex: 1, padding: "1rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "1rem" }}>
-             <div style={{ background: "rgba(124, 92, 255, 0.1)", padding: "1rem", borderRadius: "12px", fontSize: "0.85rem", color: "rgba(255,255,255,0.7)" }}>
-                Direct channel to the buyer. Messages are encrypted and logged for safety.
-             </div>
-             {/* Simple message list mock */}
-             <div style={{ alignSelf: "flex-start", background: "rgba(255,255,255,0.05)", padding: "0.8rem", borderRadius: "12px", maxWidth: "80%", fontSize: "0.9rem" }}>
-               Hi, how is the order coming along?
-             </div>
-             <div style={{ alignSelf: "flex-end", background: "#7C5CFF", padding: "0.8rem", borderRadius: "12px", maxWidth: "80%", fontSize: "0.9rem" }}>
-               Almost ready! Just packaging it up now.
-             </div>
-           </div>
-
-           <div style={{ padding: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-             <div style={{ display: "flex", gap: "0.5rem" }}>
-               <input 
-                 type="text" 
-                 placeholder="Type a message..." 
-                 style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", padding: "0.8rem", borderRadius: "8px", color: "white" }} 
-               />
-               <button className="px-5 py-2.5 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap" style={{ padding: "0 1rem" }}>Send</button>
-             </div>
-           </div>
-         </div>
-       )}
-
-       {/* Tracking Map Modal */}
-       {activeTrackingOrder && (
-         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}>
-            <div style={{ background: "#1a1026", width: "90%", maxWidth: "800px", borderRadius: "20px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <header style={{ padding: "1.2rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Live Delivery Tracker</h2>
-                <button style={{ background: "none", border: "none", color: "white", cursor: "pointer", fontSize: "1.5rem" }} onClick={() => setActiveTrackingOrder(null)}>&times;</button>
-              </header>
-              <div style={{ height: "400px", background: "#0e0814", position: "relative" }}>
-                 <MapContainer center={[driverPosition.lat, driverPosition.lng]} zoom={13} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker position={[sellerPosition.lat, sellerPosition.lng]}>
-                      <Popup>Kitchen (You)</Popup>
-                    </Marker>
-                    <Marker position={[driverPosition.lat, driverPosition.lng]}>
-                      <Popup>Delivery Buddy (Active)</Popup>
-                    </Marker>
-                    <Marker position={[destinationPosition.lat, destinationPosition.lng]}>
-                      <Popup>{destinationPosition.label ?? "Buyer Location"}</Popup>
-                    </Marker>
-                    <Polyline
-                      positions={[
-                        [sellerPosition.lat, sellerPosition.lng],
-                        [driverPosition.lat, driverPosition.lng],
-                        [destinationPosition.lat, destinationPosition.lng]
-                      ]}
-                      color="blue"
-                    />
-                 </MapContainer>
-              </div>
-              <footer style={{ padding: "1.5rem", background: "rgba(255,255,255,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#7C5CFF", display: "flex", alignItems: "center", justifyContent: "center" }}>🚴</div>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: "bold" }}>Kamau J.</p>
-                      <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(255,255,255,0.5)" }}>3.2 mins away from destination</p>
-                    </div>
-                 </div>
-                 <button className="base" style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "none", padding: "0.6rem 1rem" }}>Contact Rider</button>
-              </footer>
+      {activeChatOrder && (
+        <div className="fixed inset-y-0 right-0 w-[320px] sm:w-[360px] bg-[#1a1026] border-l border-white/10 z-[1000] flex flex-col">
+          <header className="p-6 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <h3 className="m-0 text-white font-semibold">{activeChatOrder?.buyerName}</h3>
+              <p className="m-0 text-xs text-white/50">Order #{activeChatOrder?.id.slice(-6)}</p>
             </div>
-         </div>
-       )}
+            <button
+              className="text-white/70 text-2xl"
+              onClick={() => setActiveChatOrder(null)}
+              type="button"
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
+            <div className="bg-purple-500/10 p-3 rounded-xl text-xs text-white/70">
+              Direct channel to the buyer. Messages are encrypted and logged for safety.
+            </div>
+            <div className="self-start bg-white/10 p-3 rounded-xl text-sm max-w-[80%]">
+              Hi, how is the order coming along?
+            </div>
+            <div className="self-end bg-purple-500 p-3 rounded-xl text-sm max-w-[80%]">
+              Almost ready! Just packaging it up now.
+            </div>
+          </div>
+
+          <div className="p-4 border-t border-white/10">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                className="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              />
+              <button className="px-4 py-2 rounded-xl bg-[#2dd4bf] text-[#0d0a14] font-semibold">Send</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTrackingOrder && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1100] flex items-center justify-center p-4">
+          <div className="bg-[#1a1026] w-full max-w-3xl rounded-2xl overflow-hidden border border-white/10">
+            <header className="px-6 py-4 flex items-center justify-between border-b border-white/10">
+              <div>
+                <h3 className="text-white font-semibold m-0">Tracking Order</h3>
+                <p className="text-xs text-white/50 m-0">#{activeTrackingOrder.id}</p>
+              </div>
+              <button className="text-white/70 text-2xl" onClick={() => setActiveTrackingOrder(null)} type="button">
+                ×
+              </button>
+            </header>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-6">
+              <div className="lg:col-span-2 h-[360px] rounded-xl overflow-hidden border border-white/10 bg-[#0e0814]">
+                <MapContainer center={[driverLive.lat, driverLive.lng]} zoom={13} className="h-full w-full" scrollWheelZoom={false}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="brightness-90 contrast-90 invert hue-rotate-180" />
+                  <Marker position={[sellerPosition.lat, sellerPosition.lng]}>
+                    <Popup>Kitchen</Popup>
+                  </Marker>
+                  <Marker position={[driverLive.lat, driverLive.lng]}>
+                    <Popup>Rider</Popup>
+                  </Marker>
+                  <Marker position={[destinationPosition.lat, destinationPosition.lng]}>
+                    <Popup>Dropoff</Popup>
+                  </Marker>
+                  <Polyline
+                    positions={[
+                      [sellerPosition.lat, sellerPosition.lng],
+                      [driverLive.lat, driverLive.lng],
+                      [destinationPosition.lat, destinationPosition.lng]
+                    ]}
+                    pathOptions={{ color: "#7C5CFF", weight: 4, dashArray: "10, 10" }}
+                  />
+                </MapContainer>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-4">
+                <h4 className="text-white font-semibold m-0">Rider status</h4>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/70">Rider assigned</span>
+                  <span className={driverPosition && !isTrackingStale ? "text-emerald-300 font-semibold" : "text-white/40"}>
+                    {driverPosition && !isTrackingStale ? "Live" : "Pending"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/70">Signal</span>
+                  <span className={isTrackingStale ? "text-orange-300 font-semibold" : "text-emerald-300 font-semibold"}>
+                    {isTrackingStale ? "Lost" : "Active"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/70">Pickup</span>
+                  <span className={activeTrackingOrder.status === "ready" || activeTrackingOrder.status === "completed" ? "text-emerald-300 font-semibold" : "text-white/40"}>
+                    {activeTrackingOrder.status === "ready" || activeTrackingOrder.status === "completed" ? "Yes" : "Pending"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/70">Dropoff</span>
+                  <span className={activeTrackingOrder.status === "completed" ? "text-emerald-300 font-semibold" : "text-white/40"}>
+                    {activeTrackingOrder.status === "completed" ? "Done" : "Pending"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
 
-export default dynamic(() => Promise.resolve(OrderManagementBoardInner), { ssr: false });
+export default function OrderManagementBoard() {
+  return <OrderManagementBoardInner />;
+}

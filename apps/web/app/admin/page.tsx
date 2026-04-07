@@ -85,6 +85,9 @@ export default async function AdminDashboard() {
           </div>
         )}
       </section>
+
+      <SellerAvailabilityOverride />
     </main>
   );
 }
+import SellerAvailabilityOverride from "@/components/admin/SellerAvailabilityOverride";

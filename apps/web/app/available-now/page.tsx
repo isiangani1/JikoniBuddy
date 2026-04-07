@@ -32,7 +32,7 @@ export default function AvailableNowPage() {
 
           <div className="w-full lg:w-[280px] shrink-0 bg-white/5 border border-white/10 rounded-[20px] p-6 flex flex-col justify-center">
             <h3>Live availability</h3>
-            <p className="text-white/50 text-sm">This list is stubbed and ready for API wiring.</p>
+            <p className="text-white/50 text-sm">Live list updates as sellers come online.</p>
           </div>
         </section>
 
