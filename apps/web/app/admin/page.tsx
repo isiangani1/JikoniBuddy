@@ -39,16 +39,57 @@ export default async function AdminDashboard() {
       </header>
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
+          <h3 className="text-xl font-bold text-white m-0 mb-2">Command Center</h3>
+          <p className="text-white/70 m-0">Live map, ops feed, and system health indicators.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/command-center">
+            Open war room
+          </a>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
+          <h3 className="text-xl font-bold text-white m-0 mb-2">Smart Alerts</h3>
+          <p className="text-white/70 m-0">Threshold-based alerts with severity routing.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/alerts">
+            Manage alerts
+          </a>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
+          <h3 className="text-xl font-bold text-white m-0 mb-2">Automation</h3>
+          <p className="text-white/70 m-0">Auto-ops rules, approvals, and override queue.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/automation">
+            Supervise automation
+          </a>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
           <h3 className="text-xl font-bold text-white m-0 mb-2">Orders Live</h3>
           <p className="text-white/70 m-0">Monitor active, delayed, and cancelled orders.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/orders">
+            Open order debug
+          </a>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
           <h3 className="text-xl font-bold text-white m-0 mb-2">Disputes</h3>
           <p className="text-white/70 m-0">Open cases, refunds, and resolution steps.</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
-          <h3 className="text-xl font-bold text-white m-0 mb-2">Metrics</h3>
-          <p className="text-white/70 m-0">GMV, cancellations, and seller performance.</p>
+          <h3 className="text-xl font-bold text-white m-0 mb-2">Risk Scoring</h3>
+          <p className="text-white/70 m-0">Fraud signals, score trends, and trust review queue.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/risk">
+            Open risk queue
+          </a>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
+          <h3 className="text-xl font-bold text-white m-0 mb-2">Finance Controls</h3>
+          <p className="text-white/70 m-0">Backend-derived revenue quality, settlements, and anomaly review.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/finance">
+            Open finance controls
+          </a>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-[24px] p-6 hover:border-red-500/50 transition-colors">
+          <h3 className="text-xl font-bold text-white m-0 mb-2">SLA Analytics</h3>
+          <p className="text-white/70 m-0">Delivery speed, refund pressure, and matching SLA performance.</p>
+          <a className="text-sm text-red-200 underline mt-4 inline-block" href="/admin/analytics">
+            Open analytics
+          </a>
         </div>
       </section>
       <section className="bg-white/5 border border-white/10 rounded-[24px] p-6 sm:p-8 flex flex-col gap-6">

@@ -1,6 +1,6 @@
 import React from "react";
-import PortalHeader from "@/components/PortalHeader";
 import PortalGuard from "@/components/PortalGuard";
+import AdminShell from "@/components/admin/AdminShell";
 
 export default function AdminLayout({
   children
@@ -10,8 +10,7 @@ export default function AdminLayout({
   return (
     <>
       <PortalGuard role="admin">
-        <PortalHeader portalName="Admin Portal" />
-        {children}
+        <AdminShell>{children}</AdminShell>
       </PortalGuard>
     </>
   );

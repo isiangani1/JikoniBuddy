@@ -173,9 +173,12 @@ model User {
   wallets      Wallet[]
   transactions Transaction[]
   payoutMethods PayoutMethod[]
+  riskSnapshots AdminRiskSnapshot[]
   refundRequests RefundRequest[]
   refundEvents RefundEvent[]
   chatReadReceipts ChatReadReceipt[]
+  trackingPoints TrackingPoint[]
+  buddyActionLogs BuddyActionLog[]
   jobs         Job[]
   metrics      MetricSnapshot[]
   buyerProfile BuyerProfile?
@@ -365,6 +368,116 @@ model Notification {
   readAt    DateTime?
 }
 
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actorRole  String?
+  action     String
+  targetType String?
+  targetId   String?
+  severity   String   @default("low")
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType])
+  @@index([severity])
+}
+
+model AdminAlertRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  metric      String
+  comparison  String
+  threshold   Float
+  severity    String   @default("medium")
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events      AdminAlertEvent[]
+
+  @@index([metric])
+  @@index([severity])
+  @@index([enabled])
+}
+
+model AdminAlertEvent {
+  id        String          @id @default(cuid())
+  rule      AdminAlertRule? @relation(fields: [ruleId], references: [id])
+  ruleId    String?
+  title     String
+  message   String
+  severity  String          @default("medium")
+  status    String          @default("open")
+  source    String?
+  createdAt DateTime        @default(now())
+
+  @@index([status])
+  @@index([severity])
+  @@index([ruleId])
+}
+
+model AdminAutomationRule {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  triggerType     String
+  actionType      String
+  enabled         Boolean  @default(true)
+  approvalRequired Boolean @default(false)
+  threshold       Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  executions      AdminAutomationExecution[]
+
+  @@index([triggerType])
+  @@index([actionType])
+  @@index([enabled])
+}
+
+model AdminAutomationExecution {
+  id          String               @id @default(cuid())
+  rule        AdminAutomationRule? @relation(fields: [ruleId], references: [id])
+  ruleId      String?
+  triggerType String
+  actionType  String
+  referenceId String?
+  status      String               @default("pending")
+  severity    String               @default("medium")
+  reason      String?
+  payload     Json?
+  approvedBy  String?
+  executedAt  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([status])
+  @@index([triggerType])
+  @@index([actionType])
+  @@index([referenceId])
+}
+
+model AdminRiskSnapshot {
+  id                   String   @id @default(cuid())
+  user                 User     @relation(fields: [userId], references: [id])
+  userId               String
+  score                Int
+  severity             String   @default("low")
+  cancellationCount    Int      @default(0)
+  gpsAnomalyCount      Int      @default(0)
+  paymentAnomalyCount  Int      @default(0)
+  reasons              Json?
+  createdAt            DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([score])
+  @@index([severity])
+}
+
 model Payment {
   id          String        @id @default(cuid())
   user        User          @relation(fields: [userId], references: [id])
@@ -374,8 +487,24 @@ model Payment {
   method      String        @default("M-Pesa")
   reference   String?
   status      PaymentStatus @default(pending)
+  events      PaymentEvent[]
   createdAt   DateTime      @default(now())
   completedAt DateTime?
+}
+
+model PaymentEvent {
+  id        String   @id @default(cuid())
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+  paymentId String
+  orderId   String?
+  status    String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([status])
 }
 
 model Job {
@@ -539,12 +668,65 @@ model Order {
   scheduledFor  DateTime?
   items         OrderItem[]
   messages      Message[]
+  statusEvents  OrderStatusEvent[]
+  trackingPoints TrackingPoint[]
+  buddyActions  BuddyActionLog[]
   refundRequests RefundRequest[]
   chatReadReceipts ChatReadReceipt[]
   assignedBuddy User?       @relation("BuddyAssignments", fields: [assignedBuddyId], references: [id])
   assignedBuddyId String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(cuid())
+  order     Order       @relation(fields: [orderId], references: [id])
+  orderId   String
+  status    OrderStatus
+  actorId   String?
+  actorRole String?
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([status])
+}
+
+model TrackingPoint {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id])
+  orderId   String
+  buddy     User?    @relation(fields: [buddyId], references: [id])
+  buddyId   String?
+  lat       Float
+  lng       Float
+  accuracy  Float?
+  source    String?
+  recordedAt DateTime @default(now())
+
+  @@index([orderId, recordedAt])
+  @@index([buddyId])
+}
+
+model BuddyActionLog {
+  id        String   @id @default(cuid())
+  order     Order?   @relation(fields: [orderId], references: [id])
+  orderId   String?
+  referenceId String?
+  jobId     String?
+  buddy     User?    @relation(fields: [buddyId], references: [id])
+  buddyId   String?
+  action    String
+  note      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([referenceId])
+  @@index([jobId])
+  @@index([buddyId])
+  @@index([action])
 }
 
 model ChatReadReceipt {

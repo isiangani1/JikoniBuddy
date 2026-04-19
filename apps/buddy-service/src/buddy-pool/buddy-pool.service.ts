@@ -580,9 +580,24 @@ export class BuddyPoolService {
     if (!job) return null;
     if (helperId && job.buddyId !== helperId) return null;
 
-    const updated = await this.prisma.job.update({
-      where: { id: jobId },
-      data: { status: "in_progress" }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const nextJob = await tx.job.update({
+        where: { id: jobId },
+        data: { status: "in_progress" }
+      });
+
+      await tx.buddyActionLog.create({
+        data: {
+          orderId: null,
+          referenceId: nextJob.requestId ?? nextJob.id,
+          jobId: nextJob.id,
+          buddyId: nextJob.buddyId,
+          action: "check_in",
+          note: "Buddy checked in on site."
+        }
+      });
+
+      return nextJob;
     });
 
     this.notifications.notifySeller(
@@ -599,9 +614,24 @@ export class BuddyPoolService {
     if (!job) return null;
     if (helperId && job.buddyId !== helperId) return null;
 
-    const updated = await this.prisma.job.update({
-      where: { id: jobId },
-      data: { endTime: new Date() }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const nextJob = await tx.job.update({
+        where: { id: jobId },
+        data: { endTime: new Date() }
+      });
+
+      await tx.buddyActionLog.create({
+        data: {
+          orderId: null,
+          referenceId: nextJob.requestId ?? nextJob.id,
+          jobId: nextJob.id,
+          buddyId: nextJob.buddyId,
+          action: "check_out",
+          note: "Buddy checked out."
+        }
+      });
+
+      return nextJob;
     });
 
     this.notifications.notifySeller(
@@ -617,6 +647,17 @@ export class BuddyPoolService {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job || job.buddyId !== helperId) return null;
 
+    await this.prisma.buddyActionLog.create({
+      data: {
+        orderId: null,
+        referenceId: job.requestId ?? job.id,
+        jobId: job.id,
+        buddyId: job.buddyId,
+        action: "note",
+        note
+      }
+    });
+
     this.notifications.notifySeller(
       job.sellerId,
       `Job note from buddy: ${note}`
@@ -627,6 +668,17 @@ export class BuddyPoolService {
   async raiseDispute(jobId: string, helperId: string, note: string) {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job || job.buddyId !== helperId) return null;
+
+    await this.prisma.buddyActionLog.create({
+      data: {
+        orderId: null,
+        referenceId: job.requestId ?? job.id,
+        jobId: job.id,
+        buddyId: job.buddyId,
+        action: "dispute",
+        note
+      }
+    });
 
     this.notifications.notifySeller(
       job.sellerId,
@@ -639,9 +691,24 @@ export class BuddyPoolService {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job || job.buddyId !== helperId) return null;
 
-    const updated = await this.prisma.job.update({
-      where: { id: jobId },
-      data: { status: "completed", endTime: new Date() }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const nextJob = await tx.job.update({
+        where: { id: jobId },
+        data: { status: "completed", endTime: new Date() }
+      });
+
+      await tx.buddyActionLog.create({
+        data: {
+          orderId: null,
+          referenceId: nextJob.requestId ?? nextJob.id,
+          jobId: nextJob.id,
+          buddyId: nextJob.buddyId,
+          action: "completed",
+          note: note ?? "Buddy completed job."
+        }
+      });
+
+      return nextJob;
     });
 
     this.notifications.notifySeller(

@@ -241,6 +241,87 @@ Base: `/api/geolocation`
 
 ---
 
+### 14) Admin Service
+Base: `/api/admin`
+
+- `GET /admin/audit?actorId=&action=&targetType=&severity=&page=&pageSize=`
+- `GET /admin/audit/:id`
+- `POST /admin/audit`
+  - Body: `{ actorId, actorRole?, action, targetType?, targetId?, severity?, meta? }`
+
+- `GET /admin/alerts?status=&severity=` (severity can be comma-separated)
+- `POST /admin/alerts`
+  - Body: `{ ruleId?, title, message, severity?, source? }`
+- `POST /admin/alerts/:id/ack`
+
+- `GET /admin/alerts/rules`
+- `PATCH /admin/alerts/rules/:id`
+  - Body: `{ threshold?, enabled?, severity? }`
+
+- `GET /admin/automation/rules`
+- `PATCH /admin/automation/rules/:id`
+  - Body: `{ enabled?, approvalRequired?, threshold? }`
+- `GET /admin/automation/executions?status=`
+- `POST /admin/automation/simulate`
+  - Body: `{ triggerType, referenceId?, severity?, reason?, payload? }`
+- `POST /admin/automation/executions/:id/approve`
+  - Body: `{ actorId }`
+- `POST /admin/automation/executions/:id/cancel`
+  - Body: `{ actorId, note? }`
+
+- `GET /admin/orders?status=&search=&limit=`
+- `GET /admin/orders/:id`
+  - Deep order drill-down payload with:
+    - order timeline
+    - chat log
+    - payment events
+    - refund events
+    - tracking trace
+    - buddy action log
+
+- `GET /admin/risk/users?role=&severity=&minScore=&limit=`
+- `GET /admin/risk/users/:id`
+  - Risk assessment payload with:
+    - current score (0-100)
+    - severity (`low` | `medium` | `high`)
+    - factor counts (cancellations, GPS anomalies, payment anomalies)
+    - snapshot history
+
+- `GET /admin/finance/overview?days=`
+  - Hardened finance overview payload with:
+    - backend-derived revenue breakdown
+    - settlement pipeline
+    - payout success/failure rates
+    - wallet anomaly review queue
+    - recent payout failure reasons
+    - top wallets awaiting settlement
+
+- `GET /admin/performance/overview?days=`
+  - SLA and performance payload with:
+    - avg delivery time
+    - order success rate
+    - refund rate
+    - delivery SLA compliance
+    - buddy match SLA compliance
+    - delayed-order breach list
+    - refund workflow mix
+
+- `POST /admin/actions/refund-order`
+  - Body: `{ actorId, actorRole?, orderId, amount?, note? }`
+
+- `POST /admin/actions/reassign-buddy`
+  - Body: `{ actorId, actorRole?, orderId, newBuddyId, note? }`
+
+- `POST /admin/actions/credit-wallet`
+  - Body: `{ actorId, actorRole?, userId, walletType: "seller" | "buddy", amount, note? }`
+
+- `POST /admin/actions/freeze-user`
+  - Body: `{ actorId, actorRole?, userId, note? }`
+
+> Admin endpoints can be accessed with an API key header when configured in the gateway.
+
+---
+
 ## Realtime (Socket.IO)
 
 ### Buddy Tracking (Gateway → Buddy Service)
@@ -276,4 +357,3 @@ Most endpoints respond with JSON objects. Errors typically use:
 - All paths shown above are **gateway** paths. Services themselves are mounted at their own base ports for local dev only.
 - API security is enforced in the gateway. Some routes may allow API key access (payout admin).
 - More endpoints may exist internally (e.g. metrics, dashboard helpers) and can be added here as they are finalized.
-

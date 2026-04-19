@@ -17,6 +17,14 @@ export class OrderService {
         sellerId,
         totalAmount,
         status: 'pending',
+        statusEvents: {
+          create: {
+            status: 'pending',
+            actorId: buyerId,
+            actorRole: 'buyer',
+            note: 'Order placed'
+          }
+        },
         items: {
           create: items.map(item => ({
             productId: item.productId,
@@ -25,7 +33,7 @@ export class OrderService {
           }))
         }
       },
-      include: { items: true }
+      include: { items: true, statusEvents: true }
     });
 
     // Publish strict Domain Event for Distributed Architecture
@@ -40,9 +48,22 @@ export class OrderService {
   }
 
   async updateOrderStatus(orderId: string, status: any) {
-    const order = await prisma.order.update({
-      where: { id: orderId },
-      data: { status }
+    const order = await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { status }
+      });
+
+      await tx.orderStatusEvent.create({
+        data: {
+          orderId: updated.id,
+          status,
+          actorRole: 'system',
+          note: `Order moved to ${status}`
+        }
+      });
+
+      return updated;
     });
 
     // Trigger state machine cascades

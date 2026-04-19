@@ -14,7 +14,8 @@ const services = [
   { name: "refund", url: process.env.REFUND_SERVICE_URL ?? "http://127.0.0.1:4018", path: "/health" },
   { name: "user", url: process.env.USER_SERVICE_URL ?? "http://127.0.0.1:4002", path: "/health" },
   { name: "review", url: process.env.REVIEW_SERVICE_URL ?? "http://127.0.0.1:4013", path: "/health" },
-  { name: "geolocation", url: process.env.GEOLOCATION_SERVICE_URL ?? "http://127.0.0.1:4019", path: "/health" }
+  { name: "geolocation", url: process.env.GEOLOCATION_SERVICE_URL ?? "http://127.0.0.1:4019", path: "/health" },
+  { name: "admin", url: process.env.ADMIN_SERVICE_URL ?? "http://127.0.0.1:4020", path: "/health" }
 ];
 
 const timeoutMs = 3000;

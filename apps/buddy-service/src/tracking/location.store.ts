@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { PrismaService } from "../prisma.service";
 
 type LocationPayload = {
   orderId: string;
@@ -13,7 +14,7 @@ export class LocationStore {
   private readonly redis: Redis | null;
   private readonly memory = new Map<string, LocationPayload>();
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     const url = process.env.REDIS_URL;
     this.redis = url ? new Redis(url) : null;
   }
@@ -23,6 +24,17 @@ export class LocationStore {
       ...payload,
       timestamp: payload.timestamp ?? new Date().toISOString()
     };
+    await this.prisma.trackingPoint.create({
+      data: {
+        orderId: data.orderId,
+        buddyId: data.buddyId ?? null,
+        lat: data.lat,
+        lng: data.lng,
+        accuracy: data.accuracy ?? null,
+        source: "socket",
+        recordedAt: new Date(data.timestamp)
+      }
+    });
     if (this.redis) {
       const ttl = Number(process.env.TRACKING_TTL_SECONDS ?? 30);
       await this.redis.setex(`tracking:${payload.orderId}`, ttl, JSON.stringify(data));

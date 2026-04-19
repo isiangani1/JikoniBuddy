@@ -43,7 +43,21 @@ export class PaymentService {
         currency: "KES",
         method: payload.method === "cash" ? "Pay on delivery" : "M-Pesa",
         reference,
-        status: "pending"
+        status: "pending",
+        events: {
+          create: {
+            orderId: reference,
+            status: "initiated",
+            note:
+              payload.method === "cash"
+                ? "Pay on delivery order created."
+                : "M-Pesa STK push initiated.",
+            metadata: {
+              method: payload.method,
+              phone: payload.phone ?? null
+            }
+          }
+        }
       }
     });
 
@@ -78,6 +92,14 @@ export class PaymentService {
       await this.prisma.payment.update({
         where: { id: payment.id },
         data: { status: "failed" }
+      });
+      await this.prisma.paymentEvent.create({
+        data: {
+          paymentId: payment.id,
+          orderId: reference,
+          status: "failed",
+          note: "STK push request failed."
+        }
       });
       this.broker.emit("payment.failed", {
         paymentId: payment.id,
@@ -120,10 +142,33 @@ export class PaymentService {
 
     const status = resultCode === 0 ? "completed" : "failed";
 
+    const payments = await this.prisma.payment.findMany({
+      where: accountReference ? { reference: accountReference } : { reference: checkoutId }
+    });
+
     await this.prisma.payment.updateMany({
       where: accountReference ? { reference: accountReference } : { reference: checkoutId },
-      data: { status }
+      data: {
+        status,
+        completedAt: status === "completed" ? new Date() : undefined
+      }
     });
+
+    await Promise.all(
+      payments.map((payment) =>
+        this.prisma.paymentEvent.create({
+          data: {
+            paymentId: payment.id,
+            orderId: payment.reference ?? accountReference ?? checkoutId,
+            status,
+            note:
+              status === "completed"
+                ? "Daraja callback confirmed payment."
+                : "Daraja callback returned failure."
+          }
+        })
+      )
+    );
 
     if (status === "completed") {
       this.broker.emit("payment.completed", {
@@ -151,6 +196,15 @@ export class PaymentService {
       data: { status: "completed", completedAt: new Date() }
     });
 
+    await this.prisma.paymentEvent.create({
+      data: {
+        paymentId: payment.id,
+        orderId,
+        status: "completed",
+        note: "Cash payment confirmed on delivery."
+      }
+    });
+
     this.broker.emit("payment.completed", {
       orderId,
       timestamp: new Date().toISOString()
@@ -171,6 +225,15 @@ export class PaymentService {
     const updated = await this.prisma.payment.update({
       where: { id: paymentId },
       data: { status: "refunded", completedAt: new Date() }
+    });
+
+    await this.prisma.paymentEvent.create({
+      data: {
+        paymentId: updated.id,
+        orderId: updated.reference,
+        status: "refunded",
+        note: "Payment refunded."
+      }
     });
 
     this.broker.emit("payment.refunded", {

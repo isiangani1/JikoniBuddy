@@ -1,55 +1,55 @@
 # Admin Dashboard — TODO (Ops + Finance + Trust)
 
 ## Phase 0 — Foundations
-- [ ] Create `/admin` portal shell + layout (role‑aware nav)
-- [ ] Add admin auth guard + RBAC (super admin / ops / finance / support / content)
-- [ ] Add audit logging table + service + gateway routes
-- [ ] Add global admin action panel (quick actions)
+- [x] Create `/admin` portal shell + layout (role‑aware nav)
+- [x] Add admin auth guard + RBAC (super admin / ops / finance / support / content)
+- [x] Add audit logging table + service + gateway routes
+- [x] Add global admin action panel (quick actions)
 
 ---
 
 ## Phase 1 — Live Command Center (War Room)
-- [ ] Real‑time Live Map (orders + buddies + sellers)
-- [ ] Pulsing status indicators (healthy / stressed / failing)
-- [ ] Real‑time event feed (delays, reassignments, overloads)
-- [ ] Live KPIs (orders in flight, avg delay, active buddies)
+- [x] Real‑time Live Map (orders + buddies + sellers)
+- [x] Pulsing status indicators (healthy / stressed / failing)
+- [x] Real‑time event feed (delays, reassignments, overloads)
+- [x] Live KPIs (orders in flight, avg delay, active buddies)
 
 ---
 
 ## Phase 2 — Smart Alerts Engine
-- [ ] Alert rules engine (thresholds + triggers)
-- [ ] Severity levels (Low / Medium / Critical)
-- [ ] Notification panel (SOC-style queue)
-- [ ] Alert routing to roles (ops vs finance vs support)
+- [x] Alert rules engine (thresholds + triggers)
+- [x] Severity levels (Low / Medium / Critical)
+- [x] Notification panel (SOC-style queue)
+- [x] Alert routing to roles (ops vs finance vs support)
 
 ---
 
 ## Phase 3 — Automated Actions (Auto‑Ops)
-- [ ] Auto reassign buddy if order stalled
-- [ ] Auto trigger Buddy Pool if seller overloaded
-- [ ] Auto freeze account on fraud signal
-- [ ] Admin override + approval workflow
+- [x] Auto reassign buddy if order stalled
+- [x] Auto trigger Buddy Pool if seller overloaded
+- [x] Auto freeze account on fraud signal
+- [x] Admin override + approval workflow
 
 ---
 
 ## Phase 4 — Deep Order Drill‑Down (Debug View)
-- [ ] Full order timeline (Placed → Accepted → Prep → Pickup → Delivery)
-- [ ] Location trace (map path replay)
-- [ ] Chat logs (buyer ↔ seller ↔ buddy)
-- [ ] Payment logs (initiated → completed / failed)
-- [ ] Buddy actions log
+- [x] Full order timeline (Placed → Accepted → Prep → Pickup → Delivery)
+- [x] Location trace (map path replay)
+- [x] Chat logs (buyer ↔ seller ↔ buddy)
+- [x] Payment logs (initiated → completed / failed)
+- [x] Buddy actions log
 
 ---
 
 ## Phase 5 — Fraud & Risk Scoring
-- [ ] Risk score engine (0–100)
-- [ ] Risk factors: GPS spoofing, cancellations, payment anomalies
-- [ ] Visual indicators (green/yellow/red)
-- [ ] Risk history per user (trend line)
+- [x] Risk score engine (0–100)
+- [x] Risk factors: GPS spoofing, cancellations, payment anomalies
+- [x] Visual indicators (green/yellow/red)
+- [x] Risk history per user (trend line)
 
 ---
 
-## Phase 6 — Buddy Pool Intelligence (Secret Weapon)
+## Phase 6 — Buddy Pool Intelligence 
 - [ ] Requests vs fulfilled (live)
 - [ ] Avg match time + failed matches
 - [ ] Load balancing across sellers
@@ -84,10 +84,10 @@
 ---
 
 ## Phase 10 — Internal Tools / Actions Panel
-- [ ] Refund order (one‑click)
-- [ ] Reassign buddy (quick action)
-- [ ] Credit wallet
-- [ ] Ban / freeze user
+- [x] Refund order (one‑click)
+- [x] Reassign buddy (quick action)
+- [x] Credit wallet
+- [x] Ban / freeze user
 
 ---
 
@@ -116,4 +116,3 @@
 - [ ] Users
 - [ ] Analytics
 - [ ] Promotions
-
