@@ -38,6 +38,14 @@ export class BuddyAuthService {
         idNumber: dto.idNumber,
         skills: {
           create: dto.skills.map((skill) => ({ taskType: skill }))
+        },
+        helperProfile: {
+          create: {
+            isOnline: false,
+            rating: 5,
+            jobsCompleted: 0,
+            avgResponseMinutes: 30
+          }
         }
       }
     });

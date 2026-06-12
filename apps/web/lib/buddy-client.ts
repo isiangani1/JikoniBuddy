@@ -16,3 +16,7 @@ export const fetchBuddyJson = async <T>(path: string): Promise<T> => {
 export const getUserProfile = async (id: string): Promise<any> => {
   return fetchBuddyJson(`/users/${id}`);
 };
+
+export const listPublicHelpers = async (limit = 6): Promise<any[]> => {
+  return fetchBuddyJson(`/helpers?limit=${limit}`);
+};

@@ -245,7 +245,9 @@ Base: `/api/geolocation`
 Base: `/api/admin`
 
 - `GET /admin/audit?actorId=&action=&targetType=&severity=&page=&pageSize=`
+- `GET /admin/audit?actorId=&actorRole=&action=&targetType=&targetId=&severity=&q=&dateFrom=&dateTo=&page=&pageSize=`
 - `GET /admin/audit/:id`
+- `GET /admin/audit/export?actorId=&actorRole=&action=&targetType=&targetId=&severity=&q=&dateFrom=&dateTo=`
 - `POST /admin/audit`
   - Body: `{ actorId, actorRole?, action, targetType?, targetId?, severity?, meta? }`
 

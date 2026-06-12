@@ -103,6 +103,11 @@ export class BuddyPoolController {
     return this.buddyService.getUser(id);
   }
 
+  @Get("helpers")
+  listPublicHelpers(@Query("limit") limit?: string) {
+    return this.buddyService.listPublicHelpers(limit ? Number(limit) : undefined);
+  }
+
   @Put("users/:id/status")
   updateUserStatus(@Param("id") id: string, @Body("isOnline") isOnline: boolean) {
     return this.buddyService.updateUserStatus(id, isOnline);

@@ -22,5 +22,7 @@ export const publicRoutes: RegExp[] = [
   /^\/health$/,
   /^\/auth\/.*/,
   /^\/api\/auth\/.*/,
-  /^\/api\/public\/.*/
+  /^\/api\/public\/.*/,
+  /^\/api\/buddy\/helpers(?:\/.*)?$/,
+  /^\/api\/buddy\/users\/[^/]+$/
 ];

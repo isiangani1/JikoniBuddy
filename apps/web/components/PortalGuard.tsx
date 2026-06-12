@@ -16,13 +16,14 @@ export default function PortalGuard({
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    if (allowGuest) {
+      setIsReady(true);
+      return;
+    }
+
     const isLoggedIn = sessionStorage.getItem("jb_auth") === "true";
     const storedRole = sessionStorage.getItem("jb_role");
     if (!isLoggedIn) {
-      if (allowGuest) {
-        setIsReady(true);
-        return;
-      }
       router.replace("/");
       return;
     }

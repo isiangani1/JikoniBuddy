@@ -74,7 +74,10 @@ function buildTargetUrl(
   const originalUrl = req.originalUrl ?? req.url;
   const [, query = ""] = originalUrl.split("?");
   const path = originalUrl.replace(prefix, "");
-  const trimmedPath = path.startsWith("/") ? path : `/${path}`;
+  let trimmedPath = path.startsWith("/") ? path : `/${path}`;
+  if (serviceKey === "buddy" && !trimmedPath.startsWith("/buddy/")) {
+    trimmedPath = `/buddy${trimmedPath}`;
+  }
   const target = new URL(trimmedPath, service.baseUrl);
   if (query) {
     target.search = query;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { sellers } from "@/data/sellers";
 import { MapContainer, Marker, TileLayer, Popup } from "react-leaflet";
 
@@ -22,11 +23,20 @@ function parseEtaMinutes(eta: string) {
 }
 
 export default function BuyerSellerListingPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState<"all" | "available_now">("all");
   const [sortKey, setSortKey] = useState<SortKey>("rating");
   const [showMap, setShowMap] = useState(false);
   const [availabilityMap, setAvailabilityMap] = useState<Record<string, boolean>>({});
+  const categoryQuery = searchParams.get("category")?.trim().toLowerCase() ?? "";
+
+  useEffect(() => {
+    if (!categoryQuery) return;
+    const normalized = categoryQuery.replace(/-/g, " ");
+    setQuery(normalized);
+  }, [categoryQuery]);
 
   useEffect(() => {
     let active = true;
@@ -78,6 +88,61 @@ export default function BuyerSellerListingPage() {
     return sorted;
   }, [availability, query, sortKey]);
 
+  const productResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const normalizedCategory = categoryQuery.replace(/-/g, " ");
+
+    const products = sellers.flatMap((seller) =>
+      seller.products
+        .filter((product) => {
+          const isAccepting = availabilityMap[seller.id] !== false;
+          if (availability === "available_now" && !isAccepting) {
+            return false;
+          }
+
+          const productText = [
+            product.name,
+            product.description,
+            seller.name,
+            ...seller.services
+          ]
+            .join(" ")
+            .toLowerCase();
+
+          const categoryMatch = normalizedCategory
+            ? productText.includes(normalizedCategory)
+            : true;
+          const queryMatch = q ? productText.includes(q) : true;
+
+          return categoryMatch && queryMatch;
+        })
+        .map((product) => ({
+          ...product,
+          sellerId: seller.id,
+          sellerName: seller.name,
+          sellerRating: seller.rating,
+          sellerEta: seller.eta,
+          sellerPriceRange: seller.priceRange,
+          sellerAvailability:
+            availabilityMap[seller.id] === false ? "Paused" : seller.availability
+        }))
+    );
+
+    return products.sort((a, b) => {
+      if (sortKey === "rating") return b.sellerRating - a.sellerRating;
+      if (sortKey === "eta") return parseEtaMinutes(a.sellerEta) - parseEtaMinutes(b.sellerEta);
+      return a.price - b.price;
+    });
+  }, [availability, availabilityMap, categoryQuery, query, sortKey]);
+
+  const isFoodCategoryView = Boolean(categoryQuery);
+  const categoryTitle = categoryQuery
+    ? categoryQuery
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ")
+    : "Meals";
+
   const mapCenter = filtered.length
     ? [filtered[0].lat, filtered[0].lng]
     : [-1.286389, 36.817223];
@@ -85,7 +150,9 @@ export default function BuyerSellerListingPage() {
   return (
     <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-8 min-w-0">
       <aside className="w-full md:w-[280px] shrink-0 flex flex-col gap-6">
-        <div className="text-xl font-bold text-white">Discover</div>
+        <div className="text-xl font-bold text-white">
+          {isFoodCategoryView ? `Discover ${categoryTitle}` : "Discover"}
+        </div>
 
         <div className="flex flex-col gap-2">
           <h4 className="text-sm font-semibold text-white/70 uppercase tracking-widest text-[11px] m-0">Search</h4>
@@ -154,11 +221,16 @@ export default function BuyerSellerListingPage() {
       <section className="flex-1 flex flex-col gap-8 min-w-0">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-gradient-to-r from-purple-900/40 to-transparent p-6 sm:p-8 rounded-[24px] border border-white/10">
           <div className="flex flex-col gap-2">
-            <p className="text-purple-300 font-bold tracking-widest uppercase text-sm m-0">Seller discovery</p>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white m-0">Browse sellers</h1>
+            <p className="text-purple-300 font-bold tracking-widest uppercase text-sm m-0">
+              {isFoodCategoryView ? "Food discovery" : "Seller discovery"}
+            </p>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white m-0">
+              {isFoodCategoryView ? `${categoryTitle} varieties near you` : "Browse sellers"}
+            </h1>
             <p className="text-white/70 m-0 text-lg max-w-xl">
-              Compare sellers by rating, delivery time, price range, and
-              availability.
+              {isFoodCategoryView
+                ? `Explore different ${categoryTitle.toLowerCase()} options across sellers, compare prices, delivery times, and pick the one that fits your craving.`
+                : "Compare sellers by rating, delivery time, price range, and availability."}
             </p>
           </div>
           <div className="flex">
@@ -199,46 +271,116 @@ export default function BuyerSellerListingPage() {
 
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
-             <h2 className="text-xl font-bold text-white m-0">Results <span className="text-white/50 font-normal">({filtered.length})</span></h2>
+             <h2 className="text-xl font-bold text-white m-0">
+               Results <span className="text-white/50 font-normal">({isFoodCategoryView ? productResults.length : filtered.length})</span>
+             </h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filtered.map((seller) => (
-              <Link
-                key={seller.id}
-                href={`/buyer/sellers/${seller.id}`}
-                className="relative flex flex-col rounded-[20px] overflow-hidden border border-white/12 bg-white/5 transition-all hover:-translate-y-1 hover:border-purple-500/45 p-6 group"
-              >
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/40 to-teal-500/40 border-2 border-white/10 flex-shrink-0 flex items-center justify-center text-xl shadow-md text-white font-bold">
-                     {seller.name.charAt(0)}
-                  </div>
-                  <div className="flex flex-col overflow-hidden w-full">
-                    <h3 className="text-[17px] font-bold text-white m-0 mb-1 truncate group-hover:text-purple-300 transition-colors">{seller.name}</h3>
-                    <p className="text-xs font-semibold text-yellow-500 m-0 mb-1 flex items-center gap-1">
-                      <span>★</span> {seller.rating.toFixed(1)} <span className="text-white/30 mx-1">·</span> <span className="text-white/70">{seller.eta}</span>
-                    </p>
-                    <p className="text-white/60 text-[13px] m-0 truncate">{seller.priceRange}</p>
-                  </div>
-                </div>
-                
-                <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-center">
-                  <p
-                    className={`text-[11px] font-bold uppercase tracking-wider m-0 ${
-                      availabilityMap[seller.id] === false ? "text-white/40" : "text-green-400"
-                    }`}
+            {isFoodCategoryView
+              ? productResults.map((product) => (
+                  <Link
+                    key={`${product.sellerId}-${product.id}`}
+                    href={`/buyer/sellers/${product.sellerId}`}
+                    className="group relative overflow-hidden rounded-[24px] border border-white/12 bg-white/5 transition-all hover:-translate-y-1 hover:border-purple-500/45"
                   >
-                    {availabilityMap[seller.id] === false ? "Paused" : seller.availability}
-                  </p>
-                  <span className="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 text-xs font-bold border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all">View menu</span>
-                </div>
-              </Link>
-            ))}
+                    <div className="h-[180px] w-full overflow-hidden bg-[linear-gradient(135deg,rgba(124,92,255,0.22),rgba(45,212,191,0.16),rgba(255,255,255,0.04))]">
+                      <div className="flex h-full items-end p-5">
+                        <div className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white/80 backdrop-blur-md">
+                          {categoryTitle}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h3 className="m-0 text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
+                            {product.name}
+                          </h3>
+                          <p className="m-0 mt-2 line-clamp-2 text-sm text-white/60">
+                            {product.description}
+                          </p>
+                        </div>
+                        <strong className="whitespace-nowrap text-lg text-purple-300">
+                          KES {product.price}
+                        </strong>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="m-0 text-sm font-semibold text-white truncate">
+                              {product.sellerName}
+                            </p>
+                            <p className="m-0 mt-1 text-xs text-white/45">
+                              {product.sellerPriceRange}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="m-0 text-xs font-semibold text-yellow-400">
+                              ★ {product.sellerRating.toFixed(1)}
+                            </p>
+                            <p className="m-0 mt-1 text-xs text-white/45">{product.sellerEta}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-auto flex items-center justify-between">
+                        <span
+                          className={`text-[11px] font-bold uppercase tracking-wider ${
+                            product.sellerAvailability === "Paused" ? "text-white/35" : "text-emerald-400"
+                          }`}
+                        >
+                          {product.sellerAvailability}
+                        </span>
+                        <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-4 py-2 text-xs font-bold text-purple-300 transition-all group-hover:bg-purple-500 group-hover:text-white">
+                          Choose this seller
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              : filtered.map((seller) => (
+                  <Link
+                    key={seller.id}
+                    href={`/buyer/sellers/${seller.id}`}
+                    className="relative flex flex-col rounded-[20px] overflow-hidden border border-white/12 bg-white/5 transition-all hover:-translate-y-1 hover:border-purple-500/45 p-6 group"
+                  >
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/40 to-teal-500/40 border-2 border-white/10 flex-shrink-0 flex items-center justify-center text-xl shadow-md text-white font-bold">
+                         {seller.name.charAt(0)}
+                      </div>
+                      <div className="flex flex-col overflow-hidden w-full">
+                        <h3 className="text-[17px] font-bold text-white m-0 mb-1 truncate group-hover:text-purple-300 transition-colors">{seller.name}</h3>
+                        <p className="text-xs font-semibold text-yellow-500 m-0 mb-1 flex items-center gap-1">
+                          <span>★</span> {seller.rating.toFixed(1)} <span className="text-white/30 mx-1">·</span> <span className="text-white/70">{seller.eta}</span>
+                        </p>
+                        <p className="text-white/60 text-[13px] m-0 truncate">{seller.priceRange}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto pt-4 border-t border-white/10 flex justify-between items-center">
+                      <p
+                        className={`text-[11px] font-bold uppercase tracking-wider m-0 ${
+                          availabilityMap[seller.id] === false ? "text-white/40" : "text-green-400"
+                        }`}
+                      >
+                        {availabilityMap[seller.id] === false ? "Paused" : seller.availability}
+                      </p>
+                      <span className="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-300 text-xs font-bold border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all">View menu</span>
+                    </div>
+                  </Link>
+                ))}
             
-            {filtered.length === 0 && (
+            {(isFoodCategoryView ? productResults.length === 0 : filtered.length === 0) && (
               <div className="col-span-full py-16 text-center border-2 border-dashed border-white/10 rounded-[24px] flex flex-col items-center gap-3">
                  <span className="text-4xl opacity-30">🔍</span>
-                 <p className="text-white/60 text-lg m-0">No sellers match your criteria.</p>
+                 <p className="text-white/60 text-lg m-0">
+                   {isFoodCategoryView
+                     ? `No ${categoryTitle.toLowerCase()} options match your filters yet.`
+                     : "No sellers match your criteria."}
+                 </p>
                  <button className="text-purple-400 hover:text-purple-300 underline font-medium mt-2" onClick={() => { setQuery(""); setAvailability("all"); }}>Clear filters</button>
               </div>
             )}

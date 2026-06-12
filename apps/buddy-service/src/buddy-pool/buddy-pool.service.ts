@@ -328,6 +328,63 @@ export class BuddyPoolService {
     };
   }
 
+  async listPublicHelpers(limit = 6) {
+    const resolvedLimit = Math.min(24, Math.max(1, Number(limit) || 6));
+    const helpers = await this.prisma.user.findMany({
+      where: {
+        role: "buddy",
+        NOT: {
+          status: "suspended"
+        }
+      },
+      include: {
+        skills: true,
+        helperProfile: true,
+        ratings: {
+          select: { rating: true }
+        }
+      },
+      orderBy: [
+        { rating: "desc" },
+        { createdAt: "desc" }
+      ],
+      take: resolvedLimit
+    });
+
+    return helpers.map((user) => {
+      const resolvedName = user.displayName ?? user.name ?? user.email.split("@")[0];
+      const avgRating =
+        user.ratings.length > 0
+          ? user.ratings.reduce((acc, item) => acc + item.rating, 0) / user.ratings.length
+          : user.rating ?? 5;
+      const initials = resolvedName
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? "")
+        .join("");
+
+      return {
+        id: user.id,
+        name: resolvedName,
+        role:
+          user.skills[0]?.taskType === "delivery"
+            ? "Delivery Helper"
+            : user.skills[0]?.taskType === "packaging"
+              ? "Packaging Specialist"
+              : user.skills[0]?.taskType === "cooking"
+                ? "Kitchen Helper"
+                : "Kitchen Support",
+        rating: Number(avgRating.toFixed(1)),
+        skills: user.skills.map((skill) => skill.taskType),
+        initials: initials || "JB",
+        status: user.status,
+        isOnline: user.helperProfile?.isOnline ?? false,
+        jobsCompleted: user.helperProfile?.jobsCompleted ?? 0
+      };
+    });
+  }
+
   async getUserEarnings(userId: string) {
     const earnings = await this.prisma.earning.findMany({
       where: { userId },

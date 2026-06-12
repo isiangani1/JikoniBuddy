@@ -75,19 +75,13 @@
 
 ---
 
-## Phase 9 — Role‑Based UI Personalization
-- [ ] Ops Manager view (map + alerts + orders)
-- [ ] Finance Admin view (payouts + ledger + reports)
-- [ ] Support Agent view (tickets + users + refunds)
-- [ ] Content Admin view (promos + featured sellers)
 
----
 
 ## Phase 10 — Internal Tools / Actions Panel
-- [x] Refund order (one‑click)
-- [x] Reassign buddy (quick action)
-- [x] Credit wallet
-- [x] Ban / freeze user
+- [ ] Refund order (one‑click)
+- [ ] Reassign buddy (quick action)
+- [ ] Credit wallet
+- [ ] Ban / freeze user
 
 ---
 

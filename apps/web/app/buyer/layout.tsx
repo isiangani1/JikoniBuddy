@@ -199,7 +199,7 @@ export default function BuyerLayout({
                 </Link>
               </nav>
             </aside>
-            <div className="px-4 py-6 md:px-8 md:py-6 md:pb-12 min-w-0">{children}</div>
+            <div className="min-w-0 px-0 py-6 md:px-0 md:py-6 md:pb-12">{children}</div>
           </div>
           
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center bg-[#120c1c]/85 backdrop-blur-[20px] border-t border-white/10 pb-[env(safe-area-inset-bottom)] pt-2 h-16">

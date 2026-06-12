@@ -98,7 +98,7 @@ export default async function HomePage() {
       <SiteHeader />
 
       {/* Hero Section */}
-      <section className="relative z-10 mx-auto grid w-full max-w-7xl min-w-0 grid-cols-1 items-center gap-10 px-4 pb-12 pt-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:pt-20">
+      <section className="relative z-10 grid w-full min-w-0 grid-cols-1 items-center gap-10 px-4 pb-12 pt-12 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 xl:px-14 2xl:px-20 lg:pt-20">
         <div className="flex flex-col gap-6 max-w-2xl">
           <p className="inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold uppercase tracking-widest text-purple-200 shadow-xl">
             <span className="flex h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse"></span>
@@ -166,7 +166,7 @@ export default async function HomePage() {
       </section>
 
       {/* Browse by Category */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-6 flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden sm:py-8">
+      <section className="relative z-10 w-full px-4 py-6 flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden sm:px-6 lg:px-10 xl:px-14 2xl:px-20 sm:py-8">
         <h2 className="text-3xl font-extrabold m-0">Browse by category</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {categories.map((category) => (
@@ -189,7 +189,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Sellers */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-6 flex flex-col gap-6 animate-in fade-in duration-500 sm:py-8">
+      <section className="relative z-10 w-full px-4 py-6 flex flex-col gap-6 animate-in fade-in duration-500 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 sm:py-8">
         <div className="flex flex-wrap items-center justify-between border-b border-white/10 pb-6 gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="text-3xl font-extrabold m-0">Featured sellers</h2>
@@ -235,7 +235,7 @@ export default async function HomePage() {
       <HowItWorksFlow />
 
       {/* Buddy Pool Promo */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-4 py-10 sm:py-12">
+      <section className="relative z-10 w-full px-4 py-10 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 sm:py-12">
         <div className="text-center flex flex-col items-center gap-6 md:gap-8">
           <div className="flex flex-col gap-3">
             <h2 className="text-4xl md:text-5xl font-black m-0 mb-2">The Buddy Pool</h2>

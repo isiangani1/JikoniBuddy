@@ -20,28 +20,207 @@ const slugify = (value) =>
 const imageFor = (label) =>
   `https://source.unsplash.com/640x480/?${encodeURIComponent(label)}`;
 
-const seed = async () => {
-  const email = "ireuben714@gmail.com";
-  const phone = "254700000714";
-  const passwordHash = await bcrypt.hash("demo", 10);
+const TEST_BUDDY_PASSWORD = "Buddy@2026";
+const TEST_ADMIN_PASSWORD = "admin@jb2026!";
 
-  let user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email,
-        phone,
-        passwordHash,
+const buddySeeds = [
+  {
+    email: "buddy01@gmail.com",
+    phone: "254700000711",
+    displayName: "Buddy One",
+    rating: 4.8,
+    lat: -1.2833,
+    lng: 36.8167,
+    locationLabel: "Westlands",
+    skills: ["cooking", "packaging"],
+    isOnline: true,
+    jobsCompleted: 18,
+    avgResponseMinutes: 11,
+    walletBalance: 3200,
+    pendingBalance: 1400
+  },
+  {
+    email: "buddy02@gmail.com",
+    phone: "254700000712",
+    displayName: "Buddy Two",
+    rating: 4.6,
+    lat: -1.2921,
+    lng: 36.7872,
+    locationLabel: "Kilimani",
+    skills: ["delivery", "packaging"],
+    isOnline: true,
+    jobsCompleted: 12,
+    avgResponseMinutes: 15,
+    walletBalance: 2100,
+    pendingBalance: 900
+  },
+  {
+    email: "buddy03@gmail.com",
+    phone: "254700000713",
+    displayName: "Buddy Three",
+    rating: 4.9,
+    lat: -1.2647,
+    lng: 36.8026,
+    locationLabel: "Parklands",
+    skills: ["cooking", "delivery"],
+    isOnline: false,
+    jobsCompleted: 24,
+    avgResponseMinutes: 9,
+    walletBalance: 4500,
+    pendingBalance: 1200
+  },
+  {
+    email: "buddy04@gmail.com",
+    phone: "254700000714",
+    displayName: "Buddy Four",
+    rating: 4.5,
+    lat: -1.2865,
+    lng: 36.8172,
+    locationLabel: "CBD",
+    skills: ["packaging", "generic"],
+    isOnline: true,
+    jobsCompleted: 8,
+    avgResponseMinutes: 18,
+    walletBalance: 1600,
+    pendingBalance: 700
+  },
+  {
+    email: "buddy05@gmail.com",
+    phone: "254700000715",
+    displayName: "Buddy Five",
+    rating: 4.7,
+    lat: -1.3004,
+    lng: 36.8065,
+    locationLabel: "Upper Hill",
+    skills: ["delivery", "generic"],
+    isOnline: false,
+    jobsCompleted: 15,
+    avgResponseMinutes: 13,
+    walletBalance: 2900,
+    pendingBalance: 1100
+  },
+  {
+    email: "buddy06@gmail.com",
+    phone: "254700000716",
+    displayName: "Buddy Six",
+    rating: 4.85,
+    lat: -1.3219,
+    lng: 36.6859,
+    locationLabel: "Karen",
+    skills: ["cooking", "delivery"],
+    isOnline: true,
+    jobsCompleted: 21,
+    avgResponseMinutes: 10,
+    walletBalance: 3900,
+    pendingBalance: 1500
+  }
+];
+
+const seed = async () => {
+  const buddyPasswordHash = await bcrypt.hash(TEST_BUDDY_PASSWORD, 10);
+  const adminPasswordHash = await bcrypt.hash(TEST_ADMIN_PASSWORD, 10);
+
+  const seededBuddies = [];
+
+  for (const buddySeed of buddySeeds) {
+    const buddy = await prisma.user.upsert({
+      where: { email: buddySeed.email },
+      update: {
+        phone: buddySeed.phone,
+        passwordHash: buddyPasswordHash,
         role: "buddy",
         status: "active",
-        displayName: "Ireuben 714",
-        rating: 4.8,
-        lat: -1.2833,
-        lng: 36.8167,
-        locationLabel: "Westlands"
+        displayName: buddySeed.displayName,
+        rating: buddySeed.rating,
+        lat: buddySeed.lat,
+        lng: buddySeed.lng,
+        locationLabel: buddySeed.locationLabel,
+        isAvailable: true
+      },
+      create: {
+        email: buddySeed.email,
+        phone: buddySeed.phone,
+        passwordHash: buddyPasswordHash,
+        role: "buddy",
+        status: "active",
+        displayName: buddySeed.displayName,
+        rating: buddySeed.rating,
+        lat: buddySeed.lat,
+        lng: buddySeed.lng,
+        locationLabel: buddySeed.locationLabel,
+        isAvailable: true
       }
     });
+
+    await prisma.helperProfile.upsert({
+      where: { userId: buddy.id },
+      update: {
+        isOnline: buddySeed.isOnline,
+        lat: buddySeed.lat,
+        lng: buddySeed.lng,
+        rating: buddySeed.rating,
+        jobsCompleted: buddySeed.jobsCompleted,
+        avgResponseMinutes: buddySeed.avgResponseMinutes
+      },
+      create: {
+        userId: buddy.id,
+        isOnline: buddySeed.isOnline,
+        lat: buddySeed.lat,
+        lng: buddySeed.lng,
+        rating: buddySeed.rating,
+        jobsCompleted: buddySeed.jobsCompleted,
+        avgResponseMinutes: buddySeed.avgResponseMinutes
+      }
+    });
+
+    await prisma.wallet.upsert({
+      where: { userId_type: { userId: buddy.id, type: "buddy" } },
+      update: {
+        balance: buddySeed.walletBalance,
+        pendingBalance: buddySeed.pendingBalance,
+        currency: "KES"
+      },
+      create: {
+        userId: buddy.id,
+        type: "buddy",
+        balance: buddySeed.walletBalance,
+        pendingBalance: buddySeed.pendingBalance,
+        currency: "KES"
+      }
+    });
+
+    await prisma.userSkill.deleteMany({ where: { userId: buddy.id } });
+    await prisma.userSkill.createMany({
+      data: buddySeed.skills.map((taskType) => ({ userId: buddy.id, taskType }))
+    });
+
+    seededBuddies.push(buddy);
   }
+
+  const user = seededBuddies[0];
+
+  await prisma.user.upsert({
+    where: { email: "admin@jikonibuddy.co.ke" },
+    update: {
+      phone: "254700009999",
+      passwordHash: adminPasswordHash,
+      role: "admin",
+      status: "active",
+      displayName: "Jikoni Buddy Admin",
+      locationLabel: "Nairobi HQ",
+      isAvailable: true
+    },
+    create: {
+      email: "admin@jikonibuddy.co.ke",
+      phone: "254717700747",
+      passwordHash: adminPasswordHash,
+      role: "admin",
+      status: "active",
+      displayName: "Jikoni Buddy Admin",
+      locationLabel: "Nairobi HQ",
+      isAvailable: true
+    }
+  });
 
   const sellerEmail = "seller@jikoni.buddy";
   const sellerPhone = "254700000701";
@@ -51,7 +230,7 @@ const seed = async () => {
       data: {
         email: sellerEmail,
         phone: sellerPhone,
-        passwordHash,
+        passwordHash: buddyPasswordHash,
         role: "seller",
         status: "active",
         displayName: "Kilimani Kitchen",
@@ -64,18 +243,6 @@ const seed = async () => {
   }
 
   await prisma.wallet.upsert({
-    where: { userId_type: { userId: user.id, type: "buddy" } },
-    update: {},
-    create: {
-      userId: user.id,
-      type: "buddy",
-      balance: 3200,
-      pendingBalance: 1400,
-      currency: "KES"
-    }
-  });
-
-  await prisma.wallet.upsert({
     where: { userId_type: { userId: sellerUser.id, type: "seller" } },
     update: {},
     create: {
@@ -86,18 +253,6 @@ const seed = async () => {
       currency: "KES"
     }
   });
-
-  const existingSkills = await prisma.userSkill.findMany({
-    where: { userId: user.id }
-  });
-  if (existingSkills.length === 0) {
-    await prisma.userSkill.createMany({
-      data: [
-        { userId: user.id, taskType: "cooking" },
-        { userId: user.id, taskType: "packaging" }
-      ]
-    });
-  }
 
   await prisma.buddyRequest.createMany({
     data: [

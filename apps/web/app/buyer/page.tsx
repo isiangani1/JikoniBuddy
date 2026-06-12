@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sellers } from "@/data/sellers";
 import { loadBuyerState, setCheckoutDraft, addCartItem } from "@/data/buyerStorage";
 
 export default function BuyerPage() {
   const router = useRouter();
+  const categoryRailRef = useRef<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const fallbackCategories = [
@@ -117,30 +118,82 @@ export default function BuyerPage() {
     []
   );
 
+  const fallbackSections = useMemo(() => {
+    const rotateProducts = (offset: number, count = 6) => {
+      if (!popularProducts.length) return [];
+      return Array.from({ length: Math.min(count, popularProducts.length) }, (_, index) => {
+        return popularProducts[(offset + index) % popularProducts.length];
+      });
+    };
+
+    const bySellerName = (name: string) =>
+      popularProducts.filter((product) => product.sellerName === name);
+
+    return [
+      { id: "special-today", title: "Special today", products: rotateProducts(0) },
+      { id: "fast-deliveries", title: "Fast deliveries", products: rotateProducts(3) },
+      { id: "near-you", title: "Sellers near you", products: rotateProducts(6) },
+      { id: "highest-rated", title: "Highest rated", products: rotateProducts(9) },
+      { id: "todays-offers", title: "Today's offers", products: rotateProducts(12) },
+      {
+        id: "local-legends",
+        title: "Local legends",
+        products: bySellerName("Sufuria Stories").length
+          ? [...bySellerName("Sufuria Stories"), ...rotateProducts(15, 3)].slice(0, 6)
+          : rotateProducts(15)
+      },
+      { id: "most-viewed", title: "Most viewed", products: rotateProducts(18) },
+      { id: "picnic-greats", title: "Great for picnics", products: rotateProducts(5) },
+      { id: "stock-up", title: "Stock up groceries", products: rotateProducts(8) }
+    ];
+  }, [popularProducts]);
+
   const suggestions = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return [] as Array<{ label: string; href: string }>;
+    if (!query) return [] as Array<{ label: string; href: string; meta?: string }>;
 
     const sellerMatches = sellers
-      .filter((seller) => seller.name.toLowerCase().includes(query))
-      .slice(0, 5)
+      .filter((seller) => {
+        const sellerText = [
+          seller.name,
+          seller.availability,
+          seller.priceRange,
+          ...seller.services
+        ]
+          .join(" ")
+          .toLowerCase();
+        return sellerText.includes(query);
+      })
+      .slice(0, 4)
       .map((seller) => ({
         label: `Seller: ${seller.name}`,
-        href: `/buyer/sellers/${seller.id}`
+        href: `/buyer/sellers/${seller.id}`,
+        meta: `${seller.services.join(" · ")}`
       }));
 
     const productMatches = sellers
       .flatMap((seller) =>
         seller.products.map((product) => ({ seller, product }))
       )
-      .filter(({ product }) => product.name.toLowerCase().includes(query))
-      .slice(0, 5)
+      .filter(({ seller, product }) =>
+        [product.name, product.description, seller.name, ...seller.services]
+          .join(" ")
+          .toLowerCase()
+          .includes(query)
+      )
+      .slice(0, 8)
       .map(({ seller, product }) => ({
         label: `${product.name} · ${seller.name}`,
-        href: `/buyer/sellers/${seller.id}`
+        href: `/buyer/sellers/${seller.id}`,
+        meta: `KES ${product.price} · ${seller.services.join(" / ")}`
       }));
 
-    return [...sellerMatches, ...productMatches].slice(0, 8);
+    const seen = new Set<string>();
+    return [...productMatches, ...sellerMatches].filter((item) => {
+      if (seen.has(item.label)) return false;
+      seen.add(item.label);
+      return true;
+    });
   }, [search]);
 
   const handleSearch = () => {
@@ -191,10 +244,20 @@ export default function BuyerPage() {
     return `/buyer-categories/${slug}.jpg`;
   };
 
+  const scrollCategoryRail = (direction: "left" | "right") => {
+    const rail = categoryRailRef.current;
+    if (!rail) return;
+    const distance = Math.max(rail.clientWidth * 0.72, 220);
+    rail.scrollBy({
+      left: direction === "left" ? -distance : distance,
+      behavior: "smooth"
+    });
+  };
+
 
   return (
     <>
-      <main className="flex flex-col gap-8 min-w-0">
+      <main className="flex min-w-0 flex-col gap-8 px-4 md:px-6 xl:px-8">
         <div className="mb-2">
           <div className="relative flex flex-col md:flex-row gap-3">
             <input
@@ -215,11 +278,16 @@ export default function BuyerPage() {
                 {suggestions.map((item) => (
                   <Link
                     key={item.href + item.label}
-                    className="px-4 py-2.5 rounded-lg hover:bg-white/10 transition-colors"
+                    className="rounded-lg px-4 py-2.5 transition-colors hover:bg-white/10"
                     href={item.href}
                     onClick={() => setSearch("")}
                   >
-                    {item.label}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm text-white">{item.label}</span>
+                      {item.meta ? (
+                        <span className="text-[11px] text-white/45">{item.meta}</span>
+                      ) : null}
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -227,38 +295,59 @@ export default function BuyerPage() {
           </div>
         </div>
 
-        <section className="flex overflow-x-auto gap-4 pb-4 mb-2 snap-x snap-mandatory scrollbar-thin">
-          {(headerCategories.length ? headerCategories : fallbackCategories).map(
-            (category) => {
-              const name = typeof category === "string" ? category : category.name;
-              const slug =
-                typeof category === "string" ? slugify(category) : category.slug;
-              const imageUrl =
-                typeof category === "string"
-                  ? imageForCategory(name)
-                  : category.imageUrl && category.imageUrl.startsWith("http")
+        <div className="mb-2 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => scrollCategoryRail("left")}
+            className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+            aria-label="Scroll categories left"
+          >
+            &lt;&lt;
+          </button>
+          <section
+            ref={categoryRailRef}
+            className="flex min-w-0 flex-1 overflow-x-auto gap-4 pb-4 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {(headerCategories.length ? headerCategories : fallbackCategories).map(
+              (category) => {
+                const name = typeof category === "string" ? category : category.name;
+                const slug =
+                  typeof category === "string" ? slugify(category) : category.slug;
+                const imageUrl =
+                  typeof category === "string"
                     ? imageForCategory(name)
-                    : category.imageUrl ?? imageForCategory(name);
-            return (
-              <Link
-                key={slug}
-                className="flex flex-col gap-2.5 text-center text-[#f6efff] p-3 rounded-[18px] border border-white/12 bg-white/5 min-w-[120px] snap-center transition-all hover:-translate-y-1 hover:border-purple-500/45 hover:bg-white/10"
-                href={`/buyer/sellers?category=${slug}`}
-              >
-                <div className="w-16 h-16 mx-auto rounded-full overflow-hidden border-2 border-white/15 bg-white/10 shrink-0">
-                  <img
-                    className="w-full h-full object-cover"
-                    src={imageUrl}
-                    alt={name}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <span className="text-sm font-medium">{name}</span>
-              </Link>
-            );
-          })}
-        </section>
+                    : category.imageUrl && category.imageUrl.startsWith("http")
+                      ? imageForCategory(name)
+                      : category.imageUrl ?? imageForCategory(name);
+              return (
+                <Link
+                  key={slug}
+                  className="flex min-w-[96px] flex-col items-center gap-2.5 p-1 text-center text-[#f6efff] snap-center transition-all hover:-translate-y-1"
+                  href={`/buyer/sellers?category=${slug}`}
+                >
+                  <div className="mx-auto h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/15 bg-white/10 transition-all hover:border-purple-500/45">
+                    <img
+                      className="h-full w-full object-cover"
+                      src={imageUrl}
+                      alt={name}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-white/85">{name}</span>
+                </Link>
+              );
+            })}
+          </section>
+          <button
+            type="button"
+            onClick={() => scrollCategoryRail("right")}
+            className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-bold text-white/80 transition hover:bg-white/10 hover:text-white"
+            aria-label="Scroll categories right"
+          >
+            &gt;&gt;
+          </button>
+        </div>
 
         <section className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-purple-800 to-[#12021f] border border-white/10 p-8 md:p-12 mb-4">
           <div className="absolute top-0 right-0 bottom-0 w-1/2 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent"></div>
@@ -305,17 +394,7 @@ export default function BuyerPage() {
               title: section.name,
               products: section.products
             }))
-          : [
-              { id: "special-today", title: "Special today", products: popularProducts.slice(0, 6) },
-              { id: "fast-deliveries", title: "Fast deliveries", products: popularProducts.slice(6, 12) },
-              { id: "near-you", title: "Sellers near you", products: popularProducts.slice(12, 18) },
-              { id: "highest-rated", title: "Highest rated", products: popularProducts.slice(18, 24) },
-              { id: "todays-offers", title: "Today's offers", products: popularProducts.slice(24, 30) },
-              { id: "local-legends", title: "Local legends", products: popularProducts.slice(30, 36) },
-              { id: "most-viewed", title: "Most viewed", products: popularProducts.slice(36, 42) },
-              { id: "picnic-greats", title: "Great for picnics", products: popularProducts.slice(0, 6) },
-              { id: "stock-up", title: "Stock up groceries", products: popularProducts.slice(6, 12) }
-            ]
+          : fallbackSections
         ).map((section) => (
           <section key={section.id} className="mb-10 flex flex-col gap-4">
             <h2 id={section.id} className="text-2xl font-bold m-0">{section.title}</h2>

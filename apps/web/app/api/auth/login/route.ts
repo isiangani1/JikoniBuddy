@@ -38,7 +38,23 @@ export async function POST(request: Request) {
   
   if (user) {
     if (compareSync(password, (user as any).passwordHash)) {
-      return NextResponse.json({ role: user.role, userId: user.id });
+      if (user.role === "buddy") {
+        return NextResponse.json({
+          role: "buddy",
+          buddy: {
+            id: user.id,
+            name: user.displayName ?? user.name ?? user.email.split("@")[0],
+            email: user.email,
+            status: user.status,
+            role: "buddy"
+          }
+        });
+      }
+
+      return NextResponse.json({
+        role: user.role,
+        userId: user.id
+      });
     }
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
